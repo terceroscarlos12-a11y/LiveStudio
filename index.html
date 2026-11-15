@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiveStudio</title>
+  <link rel="icon" type="image/png" href="img/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0B0F19">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cloudflare.com"></script>
+</head>
+<body>
+  <div id="splash-screen" class="splash-screen">
+    <img src="img/logo-vertical.svg" alt="LiveStudio" class="splash-logo" onerror="this.src='img/icon-512.png'">
+    <div class="splash-loader"></div>
+  </div>
+
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <img src="img/logo.header.svg" alt="LiveStudio" class="brand-logo" onerror="this.src='img/logo-header.svg'">
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-target="sec-adaptador">📱 Adaptador</button>
+      <button class="tab-btn" data-target="sec-photocards">🎴 Photocards</button>
+      <button class="tab-btn" data-target="sec-calendario">📅 Calendario</button>
+      <button class="tab-btn" data-target="sec-collage">🖼️ Collage</button>
+    </nav>
+    <div class="header-acciones">
+      <span id="badge-offline" class="badge-offline" hidden>Sin conexión</span>
+      <button id="btn-instalar-pwa" class="btn-instalar" hidden>📲 Instalar App</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="sec-adaptador" class="seccion activa">
+      <aside class="panel-controles">
+        <h2>1. Subí tu imagen</h2>
+        <input type="file" id="input-imagen" accept="image/*">
+        
+        <h2>2. Elegí el dispositivo</h2>
+        <select id="select-dispositivo">
+          <optgroup label="Apple iPhone">
+            <option value="iphone16Pro">iPhone 16 / 15 Pro (1179x2556)</option>
+            <option value="iphone16Max">iPhone 16 / 15 Pro Max (1290x2796)</option>
+            <option value="iphone13">iPhone 13 / 14 (1170x2532)</option>
+            <option value="iphoneSE">iPhone SE (750x1334)</option>
+          </optgroup>
+          <optgroup label="Samsung Galaxy">
+            <option value="galaxyS24Ultra">Samsung Galaxy S24 Ultra (1440x3120)</option>
+            <option value="galaxyS24">Samsung Galaxy S24 / S23 (1080x2340)</option>
+            <option value="galaxyA55">Samsung Galaxy A55 / A54 (1080x2340)</option>
+            <option value="galaxyZFlip">Samsung Galaxy Z Flip 6 (1080x2640)</option>
+          </optgroup>
+          <optgroup label="Motorola">
+            <option value="motoEdge50Ultra">Motorola Edge 50 Ultra (1220x2712)</option>
+            <option value="motoG84">Motorola Moto G84 (1080x2400)</option>
+            <option value="motoRazr">Motorola Razr 50 Ultra (1080x2640)</option>
+          </optgroup>
+          <optgroup label="Xiaomi / Redmi">
+            <option value="xiaomi14">Xiaomi 14 (1220x2712)</option>
+            <option value="redmiNote13">Redmi Note 13 Pro (1220x2712)</option>
+          </optgroup>
+          <optgroup label="Tablets">
+            <option value="ipadPro">iPad Pro 12.9" (2048x2732)</option>
+            <option value="ipadAir">iPad Air (1640x2360)</option>
+            <option value="galaxyTabS9">Samsung Galaxy Tab S9 (1600x2560)</option>
+          </optgroup>
+          <optgroup label="Monitores PC">
+            <option value="monitorFHD">Monitor Full HD 1080p (1920x1080)</option>
+            <option value="monitor2K">Monitor QHD / 2K (2560x1440)</option>
+            <option value="monitor4K">Monitor UHD / 4K (3840x2160)</option>
+            <option value="monitorUltrawide">Monitor Ultrawide 21:9 (3440x1440)</option>
+          </optgroup>
+        </select>
+
+        <h2>3. Ajustar encuadre visible</h2>
+        <div class="control-rango">
+          <label for="range-x">Posición Horizontal (Izq / Der)</label>
+          <input type="range" id="range-x" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="range-y">Posición Vertical (Arriba / Abajo)</label>
+          <input type="range" id="range-y" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="range-zoom">Zoom de acercamiento</label>
+          <input type="range" id="range-zoom" min="100" max="200" value="100">
+        </div>
+
+        <button id="btn-descargar" class="btn-primario">Descargar Imagen (PNG)</button>
+      </aside>
+
+      <div class="area-preview">
+        <div id="marco-dispositivo" class="marco-celular">
+          <canvas id="canvas-preview"></canvas>
+        </div>
+      </div>
+    </section>
+    <section id="sec-photocards" class="seccion">
+      <aside class="panel-controles">
+        <h2>1. Subí tus imágenes (hasta 9)</h2>
+        <input type="file" id="input-foto-poca" accept="image/*" multiple>
+        <div class="fila-doble">
+          <span id="contador-poca" class="ayuda-texto">0 / 9 fotos cargadas</span>
+          <button type="button" id="btn-limpiar-poca" class="btn-chico">Vaciar todo</button>
+        </div>
+
+        <h2>2. Tocá una tarjeta para editar</h2>
+        <select id="select-slot-poca"></select>
+        <div class="fila-acciones-slot">
+          <button type="button" id="btn-swap-poca" class="btn-secundario">⇄ Mover de lugar</button>
+          <button type="button" id="btn-quitar-slot-poca" class="btn-chico">✕ Vaciar tarjeta</button>
+        </div>
+        <div id="galeria-poca" class="galeria-miniaturas"></div>
+
+        <div class="control-rango">
+          <label for="poca-range-x">Mover Horizontal (Izq / Der)</label>
+          <input type="range" id="poca-range-x" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="poca-range-y">Mover Vertical (Arriba / Abajo)</label>
+          <input type="range" id="poca-range-y" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="poca-range-zoom">Zoom de esta tarjeta</label>
+          <input type="range" id="poca-range-zoom" min="100" max="200" value="100">
+        </div>
+
+        <h2>3. Formato de impresión (A4)</h2>
+        <select id="select-formato-poca">
+          <option value="photocards">9 Photocards (5.5 x 8.5 cm)</option>
+          <option value="banners">2 Banners de mano (29.7 x 10 cm)</option>
+        </select>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="check-guias" checked>
+          Mostrar líneas de corte
+        </label>
+
+        <button id="btn-descargar-poca-pdf" class="btn-primario">Descargar PDF para Imprimir</button>
+        <button id="btn-descargar-poca" class="btn-secundario">Descargar Imagen (PNG)</button>
+      </aside>
+
+      <div class="area-preview">
+        <div class="hoja-a4">
+          <canvas id="canvas-poca"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-calendario" class="seccion">
+      <aside class="panel-controles">
+        <h2>1. Foto del calendario</h2>
+        <input type="file" id="input-foto-cal" accept="image/*">
+
+        <h2>2. Estilo y Encuadre de Foto</h2>
+        <select id="select-estilo-cal">
+          <option value="vertical">Pared Vertical (Foto arriba + Grilla)</option>
+          <option value="escritorio">Escritorio Horizontal (Foto izq + Notas)</option>
+          <option value="editorial">Editorial Pastel (Grilla con recuadros)</option>
+        </select>
+        <div class="control-rango">
+          <label for="cal-range-x">Mover Foto Horizontal</label>
+          <input type="range" id="cal-range-x" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="cal-range-y">Mover Foto Vertical</label>
+          <input type="range" id="cal-range-y" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="cal-range-zoom">Zoom Foto Calendario</label>
+          <input type="range" id="cal-range-zoom" min="100" max="200" value="100">
+        </div>
+
+        <h2>3. Mes y Año</h2>
+        <div class="fila-doble">
+          <select id="select-mes">
+            <option value="0">Enero</option>
+            <option value="1">Febrero</option>
+            <option value="2">Marzo</option>
+            <option value="3">Abril</option>
+            <option value="4">Mayo</option>
+            <option value="5">Junio</option>
+            <option value="6">Julio</option>
+            <option value="7">Agosto</option>
+            <option value="8">Septiembre</option>
+            <option value="9">Octubre</option>
+            <option value="10">Noviembre</option>
+            <option value="11">Diciembre</option>
+          </select>
+          <input type="number" id="input-anio" value="2026" min="2024" max="2035">
+        </div>
+
+        <h2>4. Color Oficial de Grupo / Idol</h2>
+        <select id="select-color-cal">
+          <optgroup label="Grupos K-pop">
+            <option value="#FF5FA2">TWICE — Apricot & Neon Magenta</option>
+            <option value="#6C8EAD">NMIXX — Blue Grey & Coral</option>
+            <option value="#E63946">IVE — Crimson Red & Pearl</option>
+            <option value="#FF85A1">ILLIT — Baby Pink & Periwinkle</option>
+            <option value="#3A86FF">LE SSERAFIM — Fearless Blue</option>
+            <option value="#FF758F">Red Velvet — Pastel Coral</option>
+            <option value="#9D4EDD">VIVIZ — Vivid Plum & Violet</option>
+            <option value="#FF4D6D">ARTMS / LOONA — Orbit Magenta</option>
+            <option value="#00B4D8">QWER — Rock Cyan & White</option>
+            <option value="#F78FB3">Hearts2Hearts — Pastel Rose Blue</option>
+            <option value="#2B2D42">MEOVV — Sleek Noir & Silver</option>
+            <option value="#8E6CEF">BTS — Borahae Purple</option>
+            <option value="#F8A1D1">BLACKPINK — Pink & Black</option>
+          </optgroup>
+          <optgroup label="Colores Individuales Idols">
+            <option value="#FF2E63">Wonyoung (IVE) / Yunah (ILLIT)</option>
+            <option value="#4EA8DE">Gaeul / Liz (IVE Cyan Blue)</option>
+            <option value="#52B788">Rei (IVE) / Haseul (LOONA)</option>
+            <option value="#FF9E00">Leeseo (IVE) / Minju (ILLIT)</option>
+            <option value="#B5179E">Heejin / Kim Lip / Choerry (ARTMS)</option>
+            <option value="#0077B6">Jinsoul (ARTMS) / Sooin (MEOVV)</option>
+            <option value="#C77DFF">Moka (ILLIT) / Ella (MEOVV)</option>
+            <option value="#FF70A6">Wonhee (ILLIT) / Narin (MEOVV)</option>
+            <option value="#E53935">Chaeyoung (TWICE Red)</option>
+            <option value="#BA68C8">Lily / Haewon / Sullyoon (NMIXX)</option>
+          </optgroup>
+          <optgroup label="Paleta LiveStudio">
+            <option value="#083090">Azul Rey (#083090)</option>
+            <option value="#E8364C">Rojo Coral (#E8364C)</option>
+          </optgroup>
+        </select>
+
+        <h2>5. Marcar Fechas Especiales</h2>
+        <div class="fila-triple">
+          <input type="number" id="input-dia-evento" placeholder="Día" min="1" max="31">
+          <select id="select-icono-evento">
+            <option value="🎂">🎂 Cumple</option>
+            <option value="💖">💖 Corazón</option>
+            <option value="🎉">🎉 Fiesta</option>
+            <option value="⭐">⭐ Evento</option>
+          </select>
+        </div>
+        <div class="fila-doble">
+          <input type="text" id="input-texto-evento" placeholder="Ej: Cumple de Wonyoung">
+          <button type="button" id="btn-agregar-evento" class="btn-secundario">+</button>
+        </div>
+        <div id="lista-eventos-chips" class="chips-container"></div>
+
+        <button id="btn-descargar-cal-pdf" class="btn-primario">Descargar PDF para Imprimir</button>
+        <button id="btn-descargar-cal" class="btn-secundario">Descargar Imagen (PNG)</button>
+      </aside>
+
+      <div class="area-preview">
+        <div class="hoja-a4">
+          <canvas id="canvas-cal"></canvas>
+        </div>
+      </div>
+    </section>
+    <section id="sec-collage" class="seccion">
+      <aside class="panel-controles">
+        <h2>1. Subí tus fotos (hasta 20)</h2>
+        <input type="file" id="input-foto-collage" accept="image/*" multiple>
+        <div class="fila-doble">
+          <span id="contador-collage" class="ayuda-texto">0 fotos cargadas</span>
+          <button type="button" id="btn-limpiar-collage" class="btn-chico">Vaciar todo</button>
+        </div>
+
+        <h2>2. Diseño y Proporción</h2>
+        <select id="select-layout-collage">
+          <option value="centroHero">Centro Protagonista + 12 (13 fotos)</option>
+          <option value="grid4x4">Mosaico 4x4 (16 fotos)</option>
+          <option value="grid4x5">Mega Mosaico 4x5 (20 fotos)</option>
+          <option value="grid3x3">Mosaico 3x3 (9 fotos)</option>
+          <option value="grid2x2">Clásico 2x2 (4 fotos)</option>
+          <option value="editorial5">Editorial Asimétrico (1 Grande + 4)</option>
+          <option value="photobooth">Tira Photobooth Coreana (4 verticales)</option>
+        </select>
+        <select id="select-ratio-collage">
+          <option value="cuadrado">Cuadrado 1:1 (Instagram / Post)</option>
+          <option value="insta45">Vertical 4:5 (Instagram Feed)</option>
+          <option value="story">Vertical 9:16 (Story / Celular)</option>
+          <option value="a4">Hoja A4 Vertical (Para Imprimir)</option>
+          <option value="a4Horizontal">Hoja A4 Horizontal (Para Imprimir)</option>
+          <option value="monitor169">Panorámico 16:9 (Fondo PC)</option>
+        </select>
+
+        <h2>3. Tocá un espacio para editar</h2>
+        <select id="select-slot-collage"></select>
+        <div class="fila-acciones-slot">
+          <button type="button" id="btn-swap-collage" class="btn-secundario">⇄ Mover de lugar</button>
+          <button type="button" id="btn-quitar-slot-collage" class="btn-chico">✕ Vaciar celda</button>
+        </div>
+        <div id="galeria-collage" class="galeria-miniaturas"></div>
+
+        <div class="control-rango">
+          <label for="collage-pos-x">Mover foto elegida (Izq / Der)</label>
+          <input type="range" id="collage-pos-x" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="collage-pos-y">Mover foto elegida (Arriba / Abajo)</label>
+          <input type="range" id="collage-pos-y" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="collage-zoom">Zoom de la foto elegida</label>
+          <input type="range" id="collage-zoom" min="100" max="200" value="100">
+        </div>
+
+        <h2>4. Estilo, Marcos y Texto</h2>
+        <select id="collage-filtro">
+          <option value="none">Filtro: Color Original</option>
+          <option value="grayscale(100%)">Filtro: Blanco y Negro Editorial</option>
+          <option value="sepia(35%) contrast(105%)">Filtro: Vintage Cálido</option>
+          <option value="saturate(130%) contrast(105%)">Filtro: K-pop Vibrante</option>
+        </select>
+        <input type="text" id="collage-texto" placeholder="Texto opcional abajo (ej: MY BIAS 2026)">
+        <div class="control-rango">
+          <label for="collage-grosor">Grosor del marco (Separación)</label>
+          <input type="range" id="collage-grosor" min="0" max="60" value="16">
+        </div>
+        <div class="control-rango">
+          <label for="collage-radio">Redondeo de esquinas</label>
+          <input type="range" id="collage-radio" min="0" max="80" value="0">
+        </div>
+        <div class="fila-triple">
+          <label for="collage-color-marco" class="ayuda-texto" style="align-self:center;">Color de marco:</label>
+          <input type="color" id="collage-color-marco" value="#FFFFFF">
+        </div>
+
+        <button id="btn-descargar-collage" class="btn-primario">Descargar Collage (PNG)</button>
+        <button id="btn-descargar-collage-pdf" class="btn-secundario">Descargar PDF para Imprimir</button>
+      </aside>
+
+      <div class="area-preview">
+        <div class="hoja-a4">
+          <canvas id="canvas-collage"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js");
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
