@@ -8,7 +8,6 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0B0F19">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cloudflare.com"></script>
 </head>
 <body>
   <div id="splash-screen" class="splash-screen">
@@ -148,32 +147,9 @@
         </div>
       </div>
     </section>
-
     <section id="sec-calendario" class="seccion">
       <aside class="panel-controles">
-        <h2>1. Foto del calendario</h2>
-        <input type="file" id="input-foto-cal" accept="image/*">
-
-        <h2>2. Estilo y Encuadre de Foto</h2>
-        <select id="select-estilo-cal">
-          <option value="vertical">Pared Vertical (Foto arriba + Grilla)</option>
-          <option value="escritorio">Escritorio Horizontal (Foto izq + Notas)</option>
-          <option value="editorial">Editorial Pastel (Grilla con recuadros)</option>
-        </select>
-        <div class="control-rango">
-          <label for="cal-range-x">Mover Foto Horizontal</label>
-          <input type="range" id="cal-range-x" min="0" max="100" value="50">
-        </div>
-        <div class="control-rango">
-          <label for="cal-range-y">Mover Foto Vertical</label>
-          <input type="range" id="cal-range-y" min="0" max="100" value="50">
-        </div>
-        <div class="control-rango">
-          <label for="cal-range-zoom">Zoom Foto Calendario</label>
-          <input type="range" id="cal-range-zoom" min="100" max="200" value="100">
-        </div>
-
-        <h2>3. Mes y Año</h2>
+        <h2>1. Elegí el Mes a editar</h2>
         <div class="fila-doble">
           <select id="select-mes">
             <option value="0">Enero</option>
@@ -190,6 +166,28 @@
             <option value="11">Diciembre</option>
           </select>
           <input type="number" id="input-anio" value="2026" min="2024" max="2035">
+        </div>
+
+        <h2>2. Foto de este mes (o hasta 12 juntas)</h2>
+        <input type="file" id="input-foto-cal" accept="image/*" multiple>
+
+        <h2>3. Estilo y Encuadre de Foto</h2>
+        <select id="select-estilo-cal">
+          <option value="vertical">Pared Vertical (Foto arriba + Grilla)</option>
+          <option value="escritorio">Escritorio Horizontal (Foto izq + Notas)</option>
+          <option value="editorial">Editorial Pastel (Grilla con recuadros)</option>
+        </select>
+        <div class="control-rango">
+          <label for="cal-range-x">Mover Foto Horizontal</label>
+          <input type="range" id="cal-range-x" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="cal-range-y">Mover Foto Vertical</label>
+          <input type="range" id="cal-range-y" min="0" max="100" value="50">
+        </div>
+        <div class="control-rango">
+          <label for="cal-range-zoom">Zoom Foto Calendario</label>
+          <input type="range" id="cal-range-zoom" min="100" max="200" value="100">
         </div>
 
         <h2>4. Color Oficial de Grupo / Idol</h2>
@@ -227,7 +225,7 @@
           </optgroup>
         </select>
 
-        <h2>5. Marcar Fechas Especiales</h2>
+        <h2>5. Marcar Fechas Especiales de este Mes</h2>
         <div class="fila-triple">
           <input type="number" id="input-dia-evento" placeholder="Día" min="1" max="31">
           <select id="select-icono-evento">
@@ -243,8 +241,9 @@
         </div>
         <div id="lista-eventos-chips" class="chips-container"></div>
 
-        <button id="btn-descargar-cal-pdf" class="btn-primario">Descargar PDF para Imprimir</button>
-        <button id="btn-descargar-cal" class="btn-secundario">Descargar Imagen (PNG)</button>
+        <button id="btn-descargar-cal-anual" class="btn-primario">📚 Descargar Año Completo (12 Págs PDF)</button>
+        <button id="btn-descargar-cal-pdf" class="btn-secundario">Descargar Solo Este Mes (PDF)</button>
+        <button id="btn-descargar-cal" class="btn-secundario">Descargar Solo Este Mes (PNG)</button>
       </aside>
 
       <div class="area-preview">
@@ -335,6 +334,15 @@
     </section>
   </main>
 
+  <div id="modal-ios" class="modal-ios" hidden>
+    <div class="modal-ios-contenido">
+      <h3>Instalar LiveStudio en iPhone</h3>
+      <p>1. Tocá el ícono <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba en Safari).</p>
+      <p>2. Deslizá hacia abajo y elegí <strong>"Agregar a inicio"</strong>.</p>
+      <button type="button" id="btn-cerrar-ios" class="btn-primario">Entendido</button>
+    </div>
+  </div>
+
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>
   <script>
@@ -344,8 +352,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-

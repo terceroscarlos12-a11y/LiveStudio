@@ -1,6 +1,12 @@
-// ==========================================
-// 1. CONFIGURACIÓN Y ELEMENTOS DEL DOM
-// ==========================================
+function ocultarSplash() {
+  const splash = document.getElementById("splash-screen");
+  if (splash && !splash.classList.contains("oculto")) {
+    splash.classList.add("oculto");
+  }
+}
+window.addEventListener("DOMContentLoaded", () => setTimeout(ocultarSplash, 900));
+setTimeout(ocultarSplash, 2200);
+
 const dispositivos = {
   iphone16Pro: { nombre: "iPhone 16 / 15 Pro", ancho: 1179, alto: 2556, marco: "marco-celular" },
   iphone16Max: { nombre: "iPhone 16 / 15 Pro Max", ancho: 1290, alto: 2796, marco: "marco-celular" },
@@ -26,10 +32,8 @@ const dispositivos = {
 
 const A4_ANCHO = 2480;
 const A4_ALTO = 3508;
-
 const botonesTab = document.querySelectorAll(".tab-btn");
 const secciones = document.querySelectorAll(".seccion");
-
 const inputImagen = document.getElementById("input-imagen");
 const selectDispositivo = document.getElementById("select-dispositivo");
 const rangeX = document.getElementById("range-x");
@@ -74,6 +78,7 @@ const canvasCal = document.getElementById("canvas-cal");
 const ctxCal = canvasCal.getContext("2d");
 const btnDescargarCal = document.getElementById("btn-descargar-cal");
 const btnDescargarCalPdf = document.getElementById("btn-descargar-cal-pdf");
+const btnDescargarCalAnual = document.getElementById("btn-descargar-cal-anual");
 
 const inputFotoCollage = document.getElementById("input-foto-collage");
 const contadorCollage = document.getElementById("contador-collage");
@@ -104,8 +109,7 @@ let slotsPocaConfig = Array.from({ length: 9 }, (_, i) => ({ imgIdx: i, x: 50, y
 let rectangulosPoca = [];
 let modoSwapPoca = false;
 
-let imagenCal = null;
-let eventosCalendario = [];
+let datosMesesCal = Array.from({ length: 12 }, () => ({ img: null, posX: 50, posY: 50, zoom: 100, eventos: [] }));
 
 let archivosCollageGuardados = [];
 let listaImagenesCollage = [];
@@ -113,14 +117,8 @@ let slotsCollageConfig = Array.from({ length: 20 }, (_, i) => ({ imgIdx: i, x: 5
 let rectangulosCollage = [];
 let modoSwapCollage = false;
 
-const nombresMeses = [
-  "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-  "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-];
+const nombresMeses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 const diasSemana = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
-// ==========================================
-// 2. NAVEGACIÓN Y UTILIDADES
-// ==========================================
 botonesTab.forEach((boton) => {
   boton.addEventListener("click", () => {
     botonesTab.forEach((btn) => btn.classList.remove("active"));
@@ -170,22 +168,80 @@ function dibujarImagenRecortada(contexto, img, destX, destY, destW, destH, posX 
   contexto.restore();
 }
 
-function exportarCanvasAPDF(canvasOrigen, nombreArchivo, orientacion = "portrait") {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: orientacion, unit: "mm", format: "a4" });
-  const anchoPdf = orientacion === "portrait" ? 210 : 297;
-  const altoPdf = orientacion === "portrait" ? 297 : 210;
-  const imgData = canvasOrigen.toDataURL("image/jpeg", 0.95);
-  pdf.addImage(imgData, "JPEG", 0, 0, anchoPdf, altoPdf);
-  pdf.save(nombreArchivo);
+function exportarPaginasAPDF(listaImagenesJpeg, nombreArchivo, orientacion = "portrait") {
+  const wPt = orientacion === "landscape" ? 842 : 595;
+  const hPt = orientacion === "landscape" ? 595 : 842;
+  const enc = new TextEncoder();
+  const partes = Array.of();
+  const offsets = Array.of(0);
+  let pos = 0;
+
+  const agregarTexto = (txt) => {
+    const b = enc.encode(txt);
+    partes.push(b);
+    pos += b.length;
+  };
+
+  agregarTexto("%PDF-1.3\n");
+  const totalPaginas = listaImagenesJpeg.length;
+  const kidsRefs = Array.from({ length: totalPaginas }, (_, i) => `${3 + i * 3} 0 R`).join(" ");
+
+  offsets.push(pos);
+  agregarTexto("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+  offsets.push(pos);
+  agregarTexto(`2 0 obj\n<< /Type /Pages /Kids [${kidsRefs}] /Count ${totalPaginas} >>\nendobj\n`);
+
+  listaImagenesJpeg.forEach((item, i) => {
+    const pageObj = 3 + i * 3;
+    const imgObj = 4 + i * 3;
+    const contObj = 5 + i * 3;
+
+    const base64 = item.dataUrl.split(",").at(1);
+    const binStr = atob(base64);
+    const imgBytes = new Uint8Array(binStr.length);
+    for (let j = 0; j < binStr.length; j++) {
+      imgBytes.set(Array.of(binStr.charCodeAt(j)), j);
+    }
+
+    offsets.push(pos);
+    agregarTexto(`${pageObj} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im1 ${imgObj} 0 R >> >> /MediaBox [0 0 ${wPt} ${hPt}] /Contents ${contObj} 0 R >>\nendobj\n`);
+    offsets.push(pos);
+    agregarTexto(`${imgObj} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${item.width} /Height ${item.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.length} >>\nstream\n`);
+    partes.push(imgBytes);
+    pos += imgBytes.length;
+    agregarTexto("\nendstream\nendobj\n");
+
+    const contenido = `q\n${wPt} 0 0 ${hPt} 0 0 cm\n/Im1 Do\nQ\n`;
+    offsets.push(pos);
+    agregarTexto(`${contObj} 0 obj\n<< /Length ${contenido.length} >>\nstream\n${contenido}endstream\nendobj\n`);
+  });
+
+  const xrefPos = pos;
+  agregarTexto(`xref\n0 ${offsets.length}\n0000000000 65535 f \n`);
+  for (let i = 1; i < offsets.length; i++) {
+    agregarTexto(`${String(offsets.at(i)).padStart(10, "0")} 00000 n \n`);
+  }
+  agregarTexto(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
+
+  const blobPDF = new Blob(partes, { type: "application/pdf" });
+  const urlBlob = URL.createObjectURL(blobPDF);
+  const enlace = document.createElement("a");
+  enlace.href = urlBlob;
+  enlace.download = nombreArchivo;
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+  setTimeout(() => URL.revokeObjectURL(urlBlob), 2500);
 }
 
-// ==========================================
-// 3. ADAPTADOR DE PANTALLAS
-// ==========================================
+function exportarCanvasAPDF(canvasOrigen, nombreArchivo, orientacion = "portrait") {
+  const dataUrl = canvasOrigen.toDataURL("image/jpeg", 0.92);
+  exportarPaginasAPDF(Array.of({ dataUrl, width: canvasOrigen.width, height: canvasOrigen.height }), nombreArchivo, orientacion);
+}
 inputImagen.addEventListener("change", async (evento) => {
   const archivo = evento.target.files.item(0);
   if (!archivo) return;
+  evento.target.value = "";
   await guardarImagenLocal("ultima_foto_adaptador", archivo);
   cargarImagenEnVariable(archivo, (img) => {
     imagenActual = img;
@@ -231,9 +287,6 @@ btnDescargar.addEventListener("click", () => {
   enlace.href = canvas.toDataURL("image/png", 1.0);
   enlace.click();
 });
-// ==========================================
-// 4. PHOTOCARDS INTERACTIVAS
-// ==========================================
 const nombresPosicionesPoca = [
   "Fila 1 • Izquierda", "Fila 1 • Centro", "Fila 1 • Derecha",
   "Fila 2 • Izquierda", "Fila 2 • Centro", "Fila 2 • Derecha",
@@ -313,7 +366,6 @@ function sincronizarControlesSlotPoca() {
     t.classList.toggle("seleccionada", activa);
   });
 }
-
 canvasPoca.addEventListener("click", (e) => {
   const rect = canvasPoca.getBoundingClientRect();
   const clickX = (e.clientX - rect.left) * (canvasPoca.width / rect.width);
@@ -339,29 +391,21 @@ canvasPoca.addEventListener("click", (e) => {
   dibujarHojaPoca(true);
 });
 
-selectSlotPoca.addEventListener("change", () => {
-  sincronizarControlesSlotPoca();
-  dibujarHojaPoca(true);
-});
-pocaRangeX.addEventListener("input", () => {
-  slotsPocaConfig.at(parseInt(selectSlotPoca.value) || 0).x = parseInt(pocaRangeX.value);
-  dibujarHojaPoca(true);
-});
-pocaRangeY.addEventListener("input", () => {
-  slotsPocaConfig.at(parseInt(selectSlotPoca.value) || 0).y = parseInt(pocaRangeY.value);
-  dibujarHojaPoca(true);
-});
-pocaRangeZoom.addEventListener("input", () => {
-  slotsPocaConfig.at(parseInt(selectSlotPoca.value) || 0).zoom = parseInt(pocaRangeZoom.value);
-  dibujarHojaPoca(true);
-});
+selectSlotPoca.addEventListener("change", () => { sincronizarControlesSlotPoca(); dibujarHojaPoca(true); });
+pocaRangeX.addEventListener("input", () => { slotsPocaConfig.at(parseInt(selectSlotPoca.value) || 0).x = parseInt(pocaRangeX.value); dibujarHojaPoca(true); });
+pocaRangeY.addEventListener("input", () => { slotsPocaConfig.at(parseInt(selectSlotPoca.value) || 0).y = parseInt(pocaRangeY.value); dibujarHojaPoca(true); });
+pocaRangeZoom.addEventListener("input", () => { slotsPocaConfig.at(parseInt(selectSlotPoca.value) || 0).zoom = parseInt(pocaRangeZoom.value); dibujarHojaPoca(true); });
 
 inputFotoPoca.addEventListener("change", async (e) => {
   const nuevos = Array.from(e.target.files);
   if (nuevos.length === 0) return;
+  const cantidadPrevia = archivosPocaGuardados.length;
   archivosPocaGuardados = [...archivosPocaGuardados, ...nuevos].slice(0, 9);
   inputFotoPoca.value = "";
-  slotsPocaConfig.forEach((s) => (s.vacio = false));
+  for (let i = cantidadPrevia; i < archivosPocaGuardados.length; i++) {
+    slotsPocaConfig.at(i).imgIdx = i;
+    slotsPocaConfig.at(i).vacio = false;
+  }
   await guardarImagenLocal("ultimas_fotos_poca", archivosPocaGuardados);
   cargarListaImagenesPoca(archivosPocaGuardados);
 });
@@ -379,28 +423,18 @@ btnLimpiarPoca.addEventListener("click", async () => {
 function cargarListaImagenesPoca(archivos) {
   listaImagenesPoca = [];
   contadorPoca.textContent = `${archivos.length} / 9 fotos cargadas`;
-  if (archivos.length === 0) {
-    actualizarSelectoresPoca();
-    dibujarHojaPoca(true);
-    return;
-  }
+  if (archivos.length === 0) { actualizarSelectoresPoca(); dibujarHojaPoca(true); return; }
   let cargadas = 0;
   archivos.forEach((archivo, indice) => {
     cargarImagenEnVariable(archivo, (img) => {
       listaImagenesPoca.splice(indice, 1, img);
       cargadas++;
-      if (cargadas === archivos.length) {
-        actualizarSelectoresPoca();
-        dibujarHojaPoca(true);
-      }
+      if (cargadas === archivos.length) { actualizarSelectoresPoca(); dibujarHojaPoca(true); }
     });
   });
 }
 
-selectFormatoPoca.addEventListener("change", () => {
-  actualizarSelectoresPoca();
-  dibujarHojaPoca(true);
-});
+selectFormatoPoca.addEventListener("change", () => { actualizarSelectoresPoca(); dibujarHojaPoca(true); });
 checkGuias.addEventListener("change", () => dibujarHojaPoca(true));
 
 function dibujarHojaPoca(mostrarSeleccion = true) {
@@ -415,7 +449,6 @@ function dibujarHojaPoca(mostrarSeleccion = true) {
     const cardW = 650, cardH = 1004, cols = 3, filas = 3, gap = 60;
     const margenX = (A4_ANCHO - (cols * cardW + (cols - 1) * gap)) / 2;
     const margenY = (A4_ALTO - (filas * cardH + (filas - 1) * gap)) / 2;
-
     let contador = 0;
     for (let f = 0; f < filas; f++) {
       for (let c = 0; c < cols; c++) {
@@ -423,7 +456,6 @@ function dibujarHojaPoca(mostrarSeleccion = true) {
         const y = margenY + f * (cardH + gap);
         rectangulosPoca.push({ x, y, w: cardW, h: cardH });
         const conf = slotsPocaConfig.at(contador);
-
         if (!conf.vacio && listaImagenesPoca.length > 0) {
           const imgAsignada = listaImagenesPoca.at(conf.imgIdx % listaImagenesPoca.length);
           if (imgAsignada) dibujarImagenRecortada(ctxPoca, imgAsignada, x, y, cardW, cardH, conf.x, conf.y, conf.zoom);
@@ -435,26 +467,18 @@ function dibujarHojaPoca(mostrarSeleccion = true) {
           ctxPoca.textAlign = "center";
           ctxPoca.fillText(nombresPosicionesPoca.at(contador), x + cardW / 2, y + cardH / 2);
         }
-
         if (checkGuias.checked) {
-          ctxPoca.strokeStyle = "#888888";
-          ctxPoca.lineWidth = 3;
-          ctxPoca.setLineDash(Array.of(15, 15));
-          ctxPoca.strokeRect(x, y, cardW, cardH);
-          ctxPoca.setLineDash(Array.of());
+          ctxPoca.strokeStyle = "#888888"; ctxPoca.lineWidth = 3;
+          ctxPoca.setLineDash(Array.of(15, 15)); ctxPoca.strokeRect(x, y, cardW, cardH); ctxPoca.setLineDash(Array.of());
         }
-
         if (mostrarSeleccion && contador === slotActivo) {
-          ctxPoca.strokeStyle = "#FF5FA2";
-          ctxPoca.lineWidth = 12;
-          ctxPoca.strokeRect(x, y, cardW, cardH);
+          ctxPoca.strokeStyle = "#FF5FA2"; ctxPoca.lineWidth = 12; ctxPoca.strokeRect(x, y, cardW, cardH);
         }
         contador++;
       }
     }
   } else {
-    const bannerW = 2200, bannerH = 850;
-    const x = (A4_ANCHO - bannerW) / 2;
+    const bannerW = 2200, bannerH = 850, x = (A4_ANCHO - bannerW) / 2;
     Array.of(550, 2100).forEach((y, idx) => {
       rectangulosPoca.push({ x, y, w: bannerW, h: bannerH });
       const conf = slotsPocaConfig.at(idx);
@@ -462,20 +486,14 @@ function dibujarHojaPoca(mostrarSeleccion = true) {
         const imgAsignada = listaImagenesPoca.at(conf.imgIdx % listaImagenesPoca.length);
         if (imgAsignada) dibujarImagenRecortada(ctxPoca, imgAsignada, x, y, bannerW, bannerH, conf.x, conf.y, conf.zoom);
       } else {
-        ctxPoca.fillStyle = "#F1F4F9";
-        ctxPoca.fillRect(x, y, bannerW, bannerH);
+        ctxPoca.fillStyle = "#F1F4F9"; ctxPoca.fillRect(x, y, bannerW, bannerH);
       }
       if (checkGuias.checked) {
-        ctxPoca.strokeStyle = "#888888";
-        ctxPoca.lineWidth = 3;
-        ctxPoca.setLineDash(Array.of(15, 15));
-        ctxPoca.strokeRect(x, y, bannerW, bannerH);
-        ctxPoca.setLineDash(Array.of());
+        ctxPoca.strokeStyle = "#888888"; ctxPoca.lineWidth = 3;
+        ctxPoca.setLineDash(Array.of(15, 15)); ctxPoca.strokeRect(x, y, bannerW, bannerH); ctxPoca.setLineDash(Array.of());
       }
       if (mostrarSeleccion && idx === slotActivo) {
-        ctxPoca.strokeStyle = "#FF5FA2";
-        ctxPoca.lineWidth = 12;
-        ctxPoca.strokeRect(x, y, bannerW, bannerH);
+        ctxPoca.strokeStyle = "#FF5FA2"; ctxPoca.lineWidth = 12; ctxPoca.strokeRect(x, y, bannerW, bannerH);
       }
     });
   }
@@ -497,26 +515,67 @@ btnDescargarPocaPdf.addEventListener("click", () => {
   exportarCanvasAPDF(canvasPoca, `LiveStudio-A4-${selectFormatoPoca.value}.pdf`, "portrait");
   dibujarHojaPoca(true);
 });
-// ==========================================
-// 5. CALENDARIOS PERSONALIZADOS
-// ==========================================
+function obtenerMesActivo() {
+  return parseInt(selectMes.value) || 0;
+}
+
+function sincronizarControlesMes() {
+  const mesIdx = obtenerMesActivo();
+  const data = datosMesesCal.at(mesIdx);
+  calRangeX.value = data.posX;
+  calRangeY.value = data.posY;
+  calRangeZoom.value = data.zoom;
+  renderizarChipsEventos();
+}
+
 inputFotoCal.addEventListener("change", async (e) => {
-  const archivo = e.target.files.item(0);
-  if (!archivo) return;
-  await guardarImagenLocal("ultima_foto_calendario", archivo);
-  cargarImagenEnVariable(archivo, (img) => {
-    imagenCal = img;
-    dibujarCalendario();
-  });
+  const archivos = Array.from(e.target.files);
+  if (archivos.length === 0) return;
+  e.target.value = "";
+  const mesInicial = obtenerMesActivo();
+
+  if (archivos.length === 1) {
+    const archivo = archivos.at(0);
+    await guardarImagenLocal(`foto_cal_mes_${mesInicial}`, archivo);
+    cargarImagenEnVariable(archivo, (img) => {
+      datosMesesCal.at(mesInicial).img = img;
+      dibujarCalendario();
+    });
+  } else {
+    const limite = Math.min(archivos.length, 12);
+    for (let i = 0; i < limite; i++) {
+      const mesDestino = (mesInicial + i) % 12;
+      const archivo = archivos.at(i);
+      await guardarImagenLocal(`foto_cal_mes_${mesDestino}`, archivo);
+      cargarImagenEnVariable(archivo, (img) => {
+        datosMesesCal.at(mesDestino).img = img;
+        if (mesDestino === obtenerMesActivo()) dibujarCalendario();
+      });
+    }
+  }
+});
+
+selectMes.addEventListener("change", () => {
+  sincronizarControlesMes();
+  dibujarCalendario();
 });
 
 selectEstiloCal.addEventListener("change", dibujarCalendario);
-calRangeX.addEventListener("input", dibujarCalendario);
-calRangeY.addEventListener("input", dibujarCalendario);
-calRangeZoom.addEventListener("input", dibujarCalendario);
-selectMes.addEventListener("change", dibujarCalendario);
 inputAnio.addEventListener("input", dibujarCalendario);
 selectColorCal.addEventListener("change", dibujarCalendario);
+
+calRangeX.addEventListener("input", () => {
+  datosMesesCal.at(obtenerMesActivo()).posX = parseInt(calRangeX.value);
+  dibujarCalendario();
+});
+calRangeY.addEventListener("input", () => {
+  datosMesesCal.at(obtenerMesActivo()).posY = parseInt(calRangeY.value);
+  dibujarCalendario();
+});
+calRangeZoom.addEventListener("input", () => {
+  datosMesesCal.at(obtenerMesActivo()).zoom = parseInt(calRangeZoom.value);
+  dibujarCalendario();
+});
 
 btnAgregarEvento.addEventListener("click", () => {
   const dia = parseInt(inputDiaEvento.value);
@@ -524,8 +583,9 @@ btnAgregarEvento.addEventListener("click", () => {
   const texto = inputTextoEvento.value.trim();
   if (!dia || dia < 1 || dia > 31) return alert("Ingresá un día válido (1 a 31).");
 
-  eventosCalendario.push({ dia, icono, texto });
-  guardarPreferencia("eventos_calendario", eventosCalendario);
+  const mesIdx = obtenerMesActivo();
+  datosMesesCal.at(mesIdx).eventos.push({ dia, icono, texto });
+  guardarPreferencia("eventos_12_meses", datosMesesCal.map(m => m.eventos));
   inputDiaEvento.value = "";
   inputTextoEvento.value = "";
   renderizarChipsEventos();
@@ -533,8 +593,10 @@ btnAgregarEvento.addEventListener("click", () => {
 });
 
 function renderizarChipsEventos() {
+  const mesIdx = obtenerMesActivo();
+  const lista = datosMesesCal.at(mesIdx).eventos;
   listaEventosChips.innerHTML = "";
-  eventosCalendario.forEach((ev, index) => {
+  lista.forEach((ev, index) => {
     const chip = document.createElement("div");
     chip.className = "chip-evento";
     chip.innerHTML = `<span>${ev.icono} ${ev.dia} ${ev.texto}</span> <button onclick="eliminarEvento(${index})">×</button>`;
@@ -543,19 +605,18 @@ function renderizarChipsEventos() {
 }
 
 window.eliminarEvento = function(index) {
-  eventosCalendario.splice(index, 1);
-  guardarPreferencia("eventos_calendario", eventosCalendario);
+  const mesIdx = obtenerMesActivo();
+  datosMesesCal.at(mesIdx).eventos.splice(index, 1);
+  guardarPreferencia("eventos_12_meses", datosMesesCal.map(m => m.eventos));
   renderizarChipsEventos();
   dibujarCalendario();
 };
-function dibujarCalendario() {
+function dibujarCalendario(mesForzado = null) {
+  const mes = mesForzado !== null ? mesForzado : obtenerMesActivo();
+  const dataMes = datosMesesCal.at(mes);
   const estilo = selectEstiloCal.value;
-  const mes = parseInt(selectMes.value);
   const anio = parseInt(inputAnio.value) || 2026;
-  const colorAcento = selectColorCal.value;
-  const posX = parseInt(calRangeX.value);
-  const posY = parseInt(calRangeY.value);
-  const zoom = parseInt(calRangeZoom.value);
+  const colorAcento = selectColorCal.value || "#FF5FA2";
 
   const esHorizontal = estilo === "escritorio";
   const ancho = esHorizontal ? A4_ALTO : A4_ANCHO;
@@ -571,8 +632,8 @@ function dibujarCalendario() {
 
   if (esHorizontal) {
     const fotoW = ancho * 0.44;
-    if (imagenCal) {
-      dibujarImagenRecortada(ctxCal, imagenCal, 0, 0, fotoW, alto, posX, posY, zoom);
+    if (dataMes.img) {
+      dibujarImagenRecortada(ctxCal, dataMes.img, 0, 0, fotoW, alto, dataMes.posX, dataMes.posY, dataMes.zoom);
     } else {
       ctxCal.fillStyle = "#E5E9F2";
       ctxCal.fillRect(0, 0, fotoW, alto);
@@ -584,7 +645,7 @@ function dibujarCalendario() {
     ctxCal.fillStyle = colorAcento;
     ctxCal.font = "900 105px system-ui, sans-serif";
     ctxCal.textAlign = "left";
-    const textoMes = nombresMeses.at(mes);
+    const textoMes = nombresMeses.at(mes) || "ENERO";
     const anchoMes = ctxCal.measureText(textoMes).width;
     ctxCal.fillText(textoMes, panelX, 230);
 
@@ -592,12 +653,12 @@ function dibujarCalendario() {
     ctxCal.font = "700 65px system-ui, sans-serif";
     ctxCal.fillText(`${anio}`, panelX + anchoMes + 35, 230);
 
-    dibujarGrillaDias(panelX, 360, panelW, 180, primerDia, totalDias, colorAcento, false);
+    dibujarGrillaDias(panelX, 360, panelW, 180, primerDia, totalDias, colorAcento, false, dataMes.eventos);
 
     let notaY = 1780;
     ctxCal.font = "600 44px system-ui, sans-serif";
     ctxCal.textAlign = "left";
-    eventosCalendario.forEach((ev) => {
+    dataMes.eventos.forEach((ev) => {
       ctxCal.fillStyle = colorAcento;
       const diaStr = ev.dia < 10 ? `0${ev.dia}` : `${ev.dia}`;
       ctxCal.fillText(`${ev.icono} ${diaStr}  ${ev.texto}`, panelX, notaY);
@@ -608,15 +669,15 @@ function dibujarCalendario() {
     const fotoW = ancho - margen * 2;
     const fotoH = 1550;
 
-    if (imagenCal) {
-      dibujarImagenRecortada(ctxCal, imagenCal, margen, margen, fotoW, fotoH, posX, posY, zoom);
+    if (dataMes.img) {
+      dibujarImagenRecortada(ctxCal, dataMes.img, margen, margen, fotoW, fotoH, dataMes.posX, dataMes.posY, dataMes.zoom);
     } else {
       ctxCal.fillStyle = "#E5E9F2";
       ctxCal.fillRect(margen, margen, fotoW, fotoH);
       ctxCal.fillStyle = "#667085";
       ctxCal.font = "bold 55px system-ui, sans-serif";
       ctxCal.textAlign = "center";
-      ctxCal.fillText("Subí una foto para tu calendario", ancho / 2, margen + fotoH / 2);
+      ctxCal.fillText(`Subí la foto de ${nombresMeses.at(mes)}`, ancho / 2, margen + fotoH / 2);
     }
 
     const inicioY = margen + fotoH + 150;
@@ -624,23 +685,24 @@ function dibujarCalendario() {
     ctxCal.font = "900 115px system-ui, sans-serif";
     ctxCal.textAlign = estilo === "editorial" ? "center" : "left";
     const tituloX = estilo === "editorial" ? ancho / 2 : margen;
-    ctxCal.fillText(`${nombresMeses.at(mes)} ${anio}`, tituloX, inicioY);
+    const textoMes = nombresMeses.at(mes) || "ENERO";
+    ctxCal.fillText(`${textoMes} ${anio}`, tituloX, inicioY);
 
     if (estilo === "vertical") ctxCal.fillRect(margen, inicioY + 35, fotoW, 10);
 
-    dibujarGrillaDias(margen, inicioY + 130, fotoW, 175, primerDia, totalDias, colorAcento, estilo === "editorial");
+    dibujarGrillaDias(margen, inicioY + 130, fotoW, 175, primerDia, totalDias, colorAcento, estilo === "editorial", dataMes.eventos);
 
-    if (eventosCalendario.length > 0) {
+    if (dataMes.eventos.length > 0) {
       ctxCal.font = "bold 40px system-ui, sans-serif";
       ctxCal.textAlign = "left";
-      const textoResumen = eventosCalendario.map(e => `${e.icono} ${e.dia}: ${e.texto}`).join("   •   ");
+      const textoResumen = dataMes.eventos.map(e => `${e.icono} ${e.dia}: ${e.texto}`).join("   •   ");
       ctxCal.fillStyle = colorAcento;
       ctxCal.fillText(textoResumen, margen, 3230);
     }
   }
 }
 
-function dibujarGrillaDias(inicioX, inicioY, anchoTotal, altoFila, primerDia, totalDias, colorAcento, conRecuadros) {
+function dibujarGrillaDias(inicioX, inicioY, anchoTotal, altoFila, primerDia, totalDias, colorAcento, conRecuadros, listaEventos = []) {
   const anchoCol = anchoTotal / 7;
   ctxCal.font = "bold 44px system-ui, sans-serif";
   ctxCal.textAlign = "center";
@@ -663,7 +725,7 @@ function dibujarGrillaDias(inicioX, inicioY, anchoTotal, altoFila, primerDia, to
       ctxCal.globalAlpha = 1.0;
     }
 
-    const eventoDelDia = eventosCalendario.find((e) => e.dia === dia);
+    const eventoDelDia = listaEventos.find((e) => e.dia === dia);
     if (eventoDelDia) {
       ctxCal.beginPath();
       ctxCal.arc(posX, posY - 18, 48, 0, Math.PI * 2);
@@ -688,7 +750,7 @@ function dibujarGrillaDias(inicioX, inicioY, anchoTotal, altoFila, primerDia, to
 }
 
 btnDescargarCal.addEventListener("click", () => {
-  const mesNombre = nombresMeses.at(parseInt(selectMes.value));
+  const mesNombre = nombresMeses.at(obtenerMesActivo()) || "ENERO";
   const link = document.createElement("a");
   link.download = `LiveStudio-Calendario-${mesNombre}-${inputAnio.value}.png`;
   link.href = canvasCal.toDataURL("image/png", 1.0);
@@ -696,13 +758,28 @@ btnDescargarCal.addEventListener("click", () => {
 });
 
 btnDescargarCalPdf.addEventListener("click", () => {
-  const mesNombre = nombresMeses.at(parseInt(selectMes.value));
+  const mesNombre = nombresMeses.at(obtenerMesActivo()) || "ENERO";
   const orientacion = selectEstiloCal.value === "escritorio" ? "landscape" : "portrait";
   exportarCanvasAPDF(canvasCal, `LiveStudio-Calendario-${mesNombre}-${inputAnio.value}.pdf`, orientacion);
 });
-// ==========================================
-// 6. COLLAGE STUDIO AVANZADO
-// ==========================================
+
+btnDescargarCalAnual.addEventListener("click", () => {
+  const mesOriginal = obtenerMesActivo();
+  const orientacion = selectEstiloCal.value === "escritorio" ? "landscape" : "portrait";
+  const paginas = Array.of();
+
+  for (let m = 0; m < 12; m++) {
+    dibujarCalendario(m);
+    paginas.push({
+      dataUrl: canvasCal.toDataURL("image/jpeg", 0.90),
+      width: canvasCal.width,
+      height: canvasCal.height
+    });
+  }
+
+  exportarPaginasAPDF(paginas, `LiveStudio-Anuario-Completo-${inputAnio.value}.pdf`, orientacion);
+  dibujarCalendario(mesOriginal);
+});
 btnSwapCollage.addEventListener("click", () => {
   modoSwapCollage = !modoSwapCollage;
   btnSwapCollage.classList.toggle("btn-activo-swap", modoSwapCollage);
@@ -861,29 +938,21 @@ canvasCollage.addEventListener("click", (e) => {
   sincronizarControlesSlotCollage();
   dibujarCollage(true);
 });
-selectSlotCollage.addEventListener("change", () => {
-  sincronizarControlesSlotCollage();
-  dibujarCollage(true);
-});
-collagePosX.addEventListener("input", () => {
-  slotsCollageConfig.at(parseInt(selectSlotCollage.value) || 0).x = parseInt(collagePosX.value);
-  dibujarCollage(true);
-});
-collagePosY.addEventListener("input", () => {
-  slotsCollageConfig.at(parseInt(selectSlotCollage.value) || 0).y = parseInt(collagePosY.value);
-  dibujarCollage(true);
-});
-collageZoom.addEventListener("input", () => {
-  slotsCollageConfig.at(parseInt(selectSlotCollage.value) || 0).zoom = parseInt(collageZoom.value);
-  dibujarCollage(true);
-});
 
+selectSlotCollage.addEventListener("change", () => { sincronizarControlesSlotCollage(); dibujarCollage(true); });
+collagePosX.addEventListener("input", () => { slotsCollageConfig.at(parseInt(selectSlotCollage.value) || 0).x = parseInt(collagePosX.value); dibujarCollage(true); });
+collagePosY.addEventListener("input", () => { slotsCollageConfig.at(parseInt(selectSlotCollage.value) || 0).y = parseInt(collagePosY.value); dibujarCollage(true); });
+collageZoom.addEventListener("input", () => { slotsCollageConfig.at(parseInt(selectSlotCollage.value) || 0).zoom = parseInt(collageZoom.value); dibujarCollage(true); });
 inputFotoCollage.addEventListener("change", async (e) => {
   const nuevas = Array.from(e.target.files);
   if (nuevas.length === 0) return;
+  const cantidadPrevia = archivosCollageGuardados.length;
   archivosCollageGuardados = [...archivosCollageGuardados, ...nuevas].slice(0, 20);
   inputFotoCollage.value = "";
-  slotsCollageConfig.forEach((s) => (s.vacio = false));
+  for (let i = cantidadPrevia; i < archivosCollageGuardados.length; i++) {
+    slotsCollageConfig.at(i).imgIdx = i;
+    slotsCollageConfig.at(i).vacio = false;
+  }
   await guardarImagenLocal("ultimas_fotos_collage", archivosCollageGuardados);
   cargarListaImagenesCollage(archivosCollageGuardados);
 });
@@ -901,28 +970,18 @@ btnLimpiarCollage.addEventListener("click", async () => {
 function cargarListaImagenesCollage(archivos) {
   listaImagenesCollage = [];
   contadorCollage.textContent = `${archivos.length} fotos cargadas`;
-  if (archivos.length === 0) {
-    actualizarSelectoresCollage();
-    dibujarCollage(true);
-    return;
-  }
+  if (archivos.length === 0) { actualizarSelectoresCollage(); dibujarCollage(true); return; }
   let cargadas = 0;
   archivos.forEach((archivo, indice) => {
     cargarImagenEnVariable(archivo, (img) => {
       listaImagenesCollage.splice(indice, 1, img);
       cargadas++;
-      if (cargadas === archivos.length) {
-        actualizarSelectoresCollage();
-        dibujarCollage(true);
-      }
+      if (cargadas === archivos.length) { actualizarSelectoresCollage(); dibujarCollage(true); }
     });
   });
 }
 
-selectLayoutCollage.addEventListener("change", () => {
-  actualizarSelectoresCollage();
-  dibujarCollage(true);
-});
+selectLayoutCollage.addEventListener("change", () => { actualizarSelectoresCollage(); dibujarCollage(true); });
 selectRatioCollage.addEventListener("change", () => dibujarCollage(true));
 collageGrosor.addEventListener("input", () => dibujarCollage(true));
 collageRadio.addEventListener("input", () => dibujarCollage(true));
@@ -1002,6 +1061,7 @@ function dibujarCollage(mostrarSeleccion = true) {
     ctxCollage.fillText(textoPie, ancho / 2, alto - 55);
   }
 }
+
 btnDescargarCollage.addEventListener("click", () => {
   dibujarCollage(false);
   const link = document.createElement("a");
@@ -1017,15 +1077,16 @@ btnDescargarCollagePdf.addEventListener("click", () => {
   exportarCanvasAPDF(canvasCollage, `LiveStudio-Collage-${selectLayoutCollage.value}.pdf`, orient);
   dibujarCollage(true);
 });
-
-// ==========================================
-// 7. INICIALIZACIÓN GENERAL
-// ==========================================
 window.addEventListener("DOMContentLoaded", async () => {
   const dispGuardado = obtenerPreferencia("dispositivo_seleccionado", "iphone16Pro");
   if (dispositivos[dispGuardado]) selectDispositivo.value = dispGuardado;
 
-  eventosCalendario = obtenerPreferencia("eventos_calendario", []);
+  const eventosGuardados12 = obtenerPreferencia("eventos_12_meses", null);
+  if (Array.isArray(eventosGuardados12)) {
+    eventosGuardados12.forEach((evs, idx) => {
+      if (datosMesesCal.at(idx) && Array.isArray(evs)) datosMesesCal.at(idx).eventos = evs;
+    });
+  }
   renderizarChipsEventos();
   actualizarSelectoresPoca();
   actualizarSelectoresCollage();
@@ -1045,12 +1106,16 @@ window.addEventListener("DOMContentLoaded", async () => {
     dibujarHojaPoca(true);
   }
 
-  const fotoCalGuardada = await obtenerImagenLocal("ultima_foto_calendario");
-  if (fotoCalGuardada) {
-    cargarImagenEnVariable(fotoCalGuardada, (img) => { imagenCal = img; dibujarCalendario(); });
-  } else {
-    dibujarCalendario();
+  for (let m = 0; m < 12; m++) {
+    const fotoMes = await obtenerImagenLocal(`foto_cal_mes_${m}`);
+    if (fotoMes) {
+      cargarImagenEnVariable(fotoMes, (img) => {
+        datosMesesCal.at(m).img = img;
+        if (m === obtenerMesActivo()) dibujarCalendario();
+      });
+    }
   }
+  dibujarCalendario();
 
   const fotosCollageGuardadas = await obtenerImagenLocal("ultimas_fotos_collage");
   if (fotosCollageGuardadas && fotosCollageGuardadas.length > 0) {
@@ -1060,20 +1125,18 @@ window.addEventListener("DOMContentLoaded", async () => {
     dibujarCollage(true);
   }
 });
-// ==========================================
-// 8. SPLASH SCREEN, INSTALACIÓN PWA Y OFFLINE
-// ==========================================
-window.addEventListener("load", () => {
-  const splash = document.getElementById("splash-screen");
-  if (splash) {
-    setTimeout(() => {
-      splash.classList.add("oculto");
-    }, 1100);
-  }
-});
 
 let eventoInstalacionDiferido = null;
 const btnInstalarPwa = document.getElementById("btn-instalar-pwa");
+const modalIos = document.getElementById("modal-ios");
+const btnCerrarIos = document.getElementById("btn-cerrar-ios");
+
+const esIphone = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+const yaInstalada = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+if (esIphone && !yaInstalada && btnInstalarPwa) {
+  btnInstalarPwa.hidden = false;
+}
 
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
@@ -1083,13 +1146,21 @@ window.addEventListener("beforeinstallprompt", (e) => {
 
 if (btnInstalarPwa) {
   btnInstalarPwa.addEventListener("click", async () => {
+    if (esIphone) {
+      if (modalIos) modalIos.hidden = false;
+      return;
+    }
     if (!eventoInstalacionDiferido) return;
     eventoInstalacionDiferido.prompt();
     const resultado = await eventoInstalacionDiferido.userChoice;
-    if (resultado.outcome === "accepted") {
-      btnInstalarPwa.hidden = true;
-    }
+    if (resultado.outcome === "accepted") btnInstalarPwa.hidden = true;
     eventoInstalacionDiferido = null;
+  });
+}
+
+if (btnCerrarIos && modalIos) {
+  btnCerrarIos.addEventListener("click", () => {
+    modalIos.hidden = true;
   });
 }
 

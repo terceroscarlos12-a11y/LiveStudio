@@ -1,4 +1,4 @@
-const CACHE_NAME = "livestudio-final-v1";
+const CACHE_NAME = "livestudio-anuario-v7";
 const ARCHIVOS_CACHE = [
   "./",
   "./index.html",
@@ -10,8 +10,7 @@ const ARCHIVOS_CACHE = [
   "./img/icon-192.png",
   "./img/icon-512.png",
   "./img/logo.header.svg",
-  "./img/logo-vertical.svg",
-  "https://cloudflare.com"
+  "./img/logo-vertical.svg"
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,20 +37,11 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
     caches.match(event.request).then((respuestaCache) => {
-      const fetchRed = fetch(event.request)
-        .then((respuestaRed) => {
-          if (respuestaRed && respuestaRed.status === 200) {
-            const copia = respuestaRed.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
-          }
-          return respuestaRed;
-        })
-        .catch(() => {
-          if (event.request.mode === "navigate") {
-            return caches.match("./offline.html");
-          }
-        });
-      return respuestaCache || fetchRed;
+      return respuestaCache || fetch(event.request).catch(() => {
+        if (event.request.mode === "navigate") {
+          return caches.match("./offline.html");
+        }
+      });
     })
   );
 });
