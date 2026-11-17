@@ -254,9 +254,9 @@ selectDispositivo.addEventListener("change", () => {
   dibujarEnCanvas();
 });
 
-rangeX.addEventListener("input", dibujarEnCanvas);
-rangeY.addEventListener("input", dibujarEnCanvas);
-rangeZoom.addEventListener("input", dibujarEnCanvas);
+rangeX.addEventListener("input", () => dibujarEnCanvas());
+rangeY.addEventListener("input", () => dibujarEnCanvas());
+rangeZoom.addEventListener("input", () => dibujarEnCanvas());
 
 function dibujarEnCanvas() {
   const config = dispositivos[selectDispositivo.value] || dispositivos.iphone16Pro;
@@ -560,9 +560,9 @@ selectMes.addEventListener("change", () => {
   dibujarCalendario();
 });
 
-selectEstiloCal.addEventListener("change", dibujarCalendario);
-inputAnio.addEventListener("input", dibujarCalendario);
-selectColorCal.addEventListener("change", dibujarCalendario);
+selectEstiloCal.addEventListener("change", () => dibujarCalendario());
+inputAnio.addEventListener("input", () => dibujarCalendario());
+selectColorCal.addEventListener("change", () => dibujarCalendario());
 
 calRangeX.addEventListener("input", () => {
   datosMesesCal.at(obtenerMesActivo()).posX = parseInt(calRangeX.value);
@@ -612,7 +612,7 @@ window.eliminarEvento = function(index) {
   dibujarCalendario();
 };
 function dibujarCalendario(mesForzado = null) {
-  const mes = mesForzado !== null ? mesForzado : obtenerMesActivo();
+  const mes = typeof mesForzado === "number" ? mesForzado : obtenerMesActivo();
   const dataMes = datosMesesCal.at(mes);
   const estilo = selectEstiloCal.value;
   const anio = parseInt(inputAnio.value) || 2026;
