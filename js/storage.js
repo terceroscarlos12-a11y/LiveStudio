@@ -50,4 +50,3 @@ function obtenerPreferencia(clave, valorPorDefecto) {
   const dato = localStorage.getItem(`livestudio_${clave}`);
   return dato ? JSON.parse(dato) : valorPorDefecto;
 }
-

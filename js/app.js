@@ -71,6 +71,7 @@ const inputAnio = document.getElementById("input-anio");
 const selectColorCal = document.getElementById("select-color-cal");
 const inputDiaEvento = document.getElementById("input-dia-evento");
 const selectIconoEvento = document.getElementById("select-icono-evento");
+const inputColorEvento = document.getElementById("input-color-evento");
 const inputTextoEvento = document.getElementById("input-texto-evento");
 const btnAgregarEvento = document.getElementById("btn-agregar-evento");
 const listaEventosChips = document.getElementById("lista-eventos-chips");
@@ -110,6 +111,7 @@ let rectangulosPoca = [];
 let modoSwapPoca = false;
 
 let datosMesesCal = Array.from({ length: 12 }, () => ({ img: null, posX: 50, posY: 50, zoom: 100, eventos: [] }));
+let indiceEventoEditando = -1;
 
 let archivosCollageGuardados = [];
 let listaImagenesCollage = [];
@@ -515,8 +517,22 @@ btnDescargarPocaPdf.addEventListener("click", () => {
   exportarCanvasAPDF(canvasPoca, `LiveStudio-A4-${selectFormatoPoca.value}.pdf`, "portrait");
   dibujarHojaPoca(true);
 });
+if (inputColorEvento && selectColorCal) {
+  inputColorEvento.value = selectColorCal.value;
+}
+
+function obtenerColorEvento(eventoObj, colorBase) {
+  return eventoObj.color || colorBase;
+}
+
 function obtenerMesActivo() {
   return parseInt(selectMes.value) || 0;
+}
+
+function cancelarEdicionEvento() {
+  indiceEventoEditando = -1;
+  btnAgregarEvento.textContent = "+";
+  btnAgregarEvento.classList.remove("btn-activo-swap");
 }
 
 function sincronizarControlesMes() {
@@ -525,6 +541,7 @@ function sincronizarControlesMes() {
   calRangeX.value = data.posX;
   calRangeY.value = data.posY;
   calRangeZoom.value = data.zoom;
+  cancelarEdicionEvento();
   renderizarChipsEventos();
 }
 
@@ -562,7 +579,12 @@ selectMes.addEventListener("change", () => {
 
 selectEstiloCal.addEventListener("change", () => dibujarCalendario());
 inputAnio.addEventListener("input", () => dibujarCalendario());
-selectColorCal.addEventListener("change", () => dibujarCalendario());
+selectColorCal.addEventListener("change", () => {
+  if (inputColorEvento && indiceEventoEditando === -1) {
+    inputColorEvento.value = selectColorCal.value;
+  }
+  dibujarCalendario();
+});
 
 calRangeX.addEventListener("input", () => {
   datosMesesCal.at(obtenerMesActivo()).posX = parseInt(calRangeX.value);
@@ -581,10 +603,19 @@ btnAgregarEvento.addEventListener("click", () => {
   const dia = parseInt(inputDiaEvento.value);
   const icono = selectIconoEvento.value;
   const texto = inputTextoEvento.value.trim();
+  const color = inputColorEvento ? inputColorEvento.value : selectColorCal.value;
   if (!dia || dia < 1 || dia > 31) return alert("Ingresá un día válido (1 a 31).");
 
   const mesIdx = obtenerMesActivo();
-  datosMesesCal.at(mesIdx).eventos.push({ dia, icono, texto });
+  const lista = datosMesesCal.at(mesIdx).eventos;
+
+  if (indiceEventoEditando >= 0 && indiceEventoEditando < lista.length) {
+    lista.splice(indiceEventoEditando, 1, { dia, icono, texto, color });
+    cancelarEdicionEvento();
+  } else {
+    lista.push({ dia, icono, texto, color });
+  }
+
   guardarPreferencia("eventos_12_meses", datosMesesCal.map(m => m.eventos));
   inputDiaEvento.value = "";
   inputTextoEvento.value = "";
@@ -596,10 +627,45 @@ function renderizarChipsEventos() {
   const mesIdx = obtenerMesActivo();
   const lista = datosMesesCal.at(mesIdx).eventos;
   listaEventosChips.innerHTML = "";
+
   lista.forEach((ev, index) => {
     const chip = document.createElement("div");
     chip.className = "chip-evento";
-    chip.innerHTML = `<span>${ev.icono} ${ev.dia} ${ev.texto}</span> <button onclick="eliminarEvento(${index})">×</button>`;
+    chip.style.borderColor = ev.color || selectColorCal.value;
+    chip.style.cursor = "pointer";
+    chip.title = "Tocá para editar texto o color";
+
+    const puntoColor = document.createElement("span");
+    puntoColor.style.display = "inline-block";
+    puntoColor.style.width = "10px";
+    puntoColor.style.height = "10px";
+    puntoColor.style.borderRadius = "50%";
+    puntoColor.style.backgroundColor = ev.color || selectColorCal.value;
+
+    const etiqueta = document.createElement("span");
+    etiqueta.textContent = `${ev.icono} ${ev.dia} ${ev.texto}`;
+
+    const btnBorrar = document.createElement("button");
+    btnBorrar.textContent = "×";
+    btnBorrar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      eliminarEvento(index);
+    });
+
+    chip.addEventListener("click", () => {
+      indiceEventoEditando = index;
+      inputDiaEvento.value = ev.dia;
+      selectIconoEvento.value = ev.icono;
+      inputTextoEvento.value = ev.texto;
+      if (inputColorEvento) inputColorEvento.value = ev.color || selectColorCal.value;
+      btnAgregarEvento.textContent = "✓";
+      btnAgregarEvento.classList.add("btn-activo-swap");
+      inputTextoEvento.focus();
+    });
+
+    chip.appendChild(puntoColor);
+    chip.appendChild(etiqueta);
+    chip.appendChild(btnBorrar);
     listaEventosChips.appendChild(chip);
   });
 }
@@ -607,10 +673,34 @@ function renderizarChipsEventos() {
 window.eliminarEvento = function(index) {
   const mesIdx = obtenerMesActivo();
   datosMesesCal.at(mesIdx).eventos.splice(index, 1);
+  if (indiceEventoEditando === index) cancelarEdicionEvento();
   guardarPreferencia("eventos_12_meses", datosMesesCal.map(m => m.eventos));
   renderizarChipsEventos();
   dibujarCalendario();
 };
+function dibujarTextoEventosMultilinea(ctx, listaEventos, inicioX, inicioY, anchoMaximo, altoLinea, colorBase) {
+  ctx.font = "bold 38px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  let cursorX = inicioX;
+  let cursorY = inicioY;
+
+  listaEventos.forEach((ev, idx) => {
+    const colorItem = obtenerColorEvento(ev, colorBase);
+    const separador = idx < listaEventos.length - 1 ? "   •   " : "";
+    const fragmento = `${ev.icono} ${ev.dia}: ${ev.texto}${separador}`;
+    const anchoFragmento = ctx.measureText(fragmento).width;
+
+    if (cursorX + anchoFragmento > inicioX + anchoMaximo && cursorX > inicioX) {
+      cursorX = inicioX;
+      cursorY += altoLinea;
+    }
+
+    ctx.fillStyle = colorItem;
+    ctx.fillText(fragmento, cursorX, cursorY);
+    cursorX += anchoFragmento;
+  });
+}
+
 function dibujarCalendario(mesForzado = null) {
   const mes = typeof mesForzado === "number" ? mesForzado : obtenerMesActivo();
   const dataMes = datosMesesCal.at(mes);
@@ -655,19 +745,19 @@ function dibujarCalendario(mesForzado = null) {
 
     dibujarGrillaDias(panelX, 360, panelW, 180, primerDia, totalDias, colorAcento, false, dataMes.eventos);
 
-    let notaY = 1780;
-    ctxCal.font = "600 44px system-ui, sans-serif";
+    let notaY = 1760;
+    ctxCal.font = "bold 40px system-ui, sans-serif";
     ctxCal.textAlign = "left";
     dataMes.eventos.forEach((ev) => {
-      ctxCal.fillStyle = colorAcento;
+      ctxCal.fillStyle = obtenerColorEvento(ev, colorAcento);
       const diaStr = ev.dia < 10 ? `0${ev.dia}` : `${ev.dia}`;
       ctxCal.fillText(`${ev.icono} ${diaStr}  ${ev.texto}`, panelX, notaY);
-      notaY += 65;
+      notaY += 56;
     });
   } else {
     const margen = 140;
     const fotoW = ancho - margen * 2;
-    const fotoH = 1550;
+    const fotoH = 1520;
 
     if (dataMes.img) {
       dibujarImagenRecortada(ctxCal, dataMes.img, margen, margen, fotoW, fotoH, dataMes.posX, dataMes.posY, dataMes.zoom);
@@ -680,7 +770,7 @@ function dibujarCalendario(mesForzado = null) {
       ctxCal.fillText(`Subí la foto de ${nombresMeses.at(mes)}`, ancho / 2, margen + fotoH / 2);
     }
 
-    const inicioY = margen + fotoH + 150;
+    const inicioY = margen + fotoH + 140;
     ctxCal.fillStyle = colorAcento;
     ctxCal.font = "900 115px system-ui, sans-serif";
     ctxCal.textAlign = estilo === "editorial" ? "center" : "left";
@@ -690,14 +780,10 @@ function dibujarCalendario(mesForzado = null) {
 
     if (estilo === "vertical") ctxCal.fillRect(margen, inicioY + 35, fotoW, 10);
 
-    dibujarGrillaDias(margen, inicioY + 130, fotoW, 175, primerDia, totalDias, colorAcento, estilo === "editorial", dataMes.eventos);
+    dibujarGrillaDias(margen, inicioY + 125, fotoW, 168, primerDia, totalDias, colorAcento, estilo === "editorial", dataMes.eventos);
 
     if (dataMes.eventos.length > 0) {
-      ctxCal.font = "bold 40px system-ui, sans-serif";
-      ctxCal.textAlign = "left";
-      const textoResumen = dataMes.eventos.map(e => `${e.icono} ${e.dia}: ${e.texto}`).join("   •   ");
-      ctxCal.fillStyle = colorAcento;
-      ctxCal.fillText(textoResumen, margen, 3230);
+      dibujarTextoEventosMultilinea(ctxCal, dataMes.eventos, margen, 3160, fotoW, 54, colorAcento);
     }
   }
 }
@@ -715,29 +801,37 @@ function dibujarGrillaDias(inicioX, inicioY, anchoTotal, altoFila, primerDia, to
   let fila = 0, col = primerDia;
   for (let dia = 1; dia <= totalDias; dia++) {
     const posX = inicioX + col * anchoCol + anchoCol / 2;
-    const posY = inicioY + 135 + fila * altoFila;
+    const posY = inicioY + 130 + fila * altoFila;
 
     if (conRecuadros) {
       ctxCal.strokeStyle = colorAcento;
       ctxCal.globalAlpha = 0.35;
       ctxCal.lineWidth = 3;
-      ctxCal.strokeRect(inicioX + col * anchoCol + 6, posY - 85, anchoCol - 12, altoFila - 16);
+      ctxCal.strokeRect(inicioX + col * anchoCol + 6, posY - 82, anchoCol - 12, altoFila - 16);
       ctxCal.globalAlpha = 1.0;
     }
 
-    const eventoDelDia = listaEventos.find((e) => e.dia === dia);
-    if (eventoDelDia) {
-      ctxCal.beginPath();
-      ctxCal.arc(posX, posY - 18, 48, 0, Math.PI * 2);
-      ctxCal.fillStyle = colorAcento;
-      ctxCal.fill();
+    const eventosDelDia = listaEventos.filter((e) => e.dia === dia);
+    if (eventosDelDia.length > 0) {
+      const radioCirculo = 48;
+      const centroY = posY - 18;
+      const pasoAngulo = (Math.PI * 2) / eventosDelDia.length;
+
+      eventosDelDia.forEach((ev, idx) => {
+        ctxCal.beginPath();
+        ctxCal.moveTo(posX, centroY);
+        ctxCal.arc(posX, centroY, radioCirculo, -Math.PI / 2 + idx * pasoAngulo, -Math.PI / 2 + (idx + 1) * pasoAngulo);
+        ctxCal.closePath();
+        ctxCal.fillStyle = obtenerColorEvento(ev, colorAcento);
+        ctxCal.fill();
+      });
 
       ctxCal.fillStyle = "#FFFFFF";
       ctxCal.font = "bold 52px system-ui, sans-serif";
       ctxCal.fillText(dia.toString(), posX, posY);
 
       ctxCal.font = "44px system-ui, sans-serif";
-      ctxCal.fillText(eventoDelDia.icono, posX + 42, posY - 42);
+      ctxCal.fillText(eventosDelDia.at(0).icono, posX + 42, posY - 42);
     } else {
       ctxCal.fillStyle = col === 0 ? "#E8364C" : "#1E263B";
       ctxCal.font = "600 52px system-ui, sans-serif";

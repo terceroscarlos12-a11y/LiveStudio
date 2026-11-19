@@ -225,8 +225,8 @@
           </optgroup>
         </select>
 
-        <h2>5. Marcar Fechas Especiales de este Mes</h2>
-        <div class="fila-triple">
+        <h2>5. Marcar Fechas Especiales (Tocá una etiqueta para editar)</h2>
+        <div class="fila-triple" style="grid-template-columns: 1fr 1.4fr 0.7fr;">
           <input type="number" id="input-dia-evento" placeholder="Día" min="1" max="31">
           <select id="select-icono-evento">
             <option value="🎂">🎂 Cumple</option>
@@ -234,6 +234,7 @@
             <option value="🎉">🎉 Fiesta</option>
             <option value="⭐">⭐ Evento</option>
           </select>
+          <input type="color" id="input-color-evento" value="#FF5FA2" title="Color de este evento">
         </div>
         <div class="fila-doble">
           <input type="text" id="input-texto-evento" placeholder="Ej: Cumple de Wonyoung">
