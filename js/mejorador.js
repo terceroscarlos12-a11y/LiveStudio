@@ -126,6 +126,25 @@ const motorWebGL = (() => {
     vec3 d3 = texture(u_tex, v_uv + vec2(-u_px.x * 2.5,  u_px.y * 2.5)).rgb;
     vec3 d4 = texture(u_tex, v_uv + vec2( u_px.x * 2.5,  u_px.y * 2.5)).rgb;
     vec3 blur2 = (blur1 + d1 + d2 + d3 + d4) / 5.0;
+  void main(){
+    vec4 orig = texture(u_tex, v_uv);
+    vec3 col = orig.rgb;
+    if (u_ca > 0.01) {
+      vec2 dir = (v_uv - 0.5) * u_ca * 0.004;
+      col.r = texture(u_tex, v_uv + dir).r;
+      col.b = texture(u_tex, v_uv - dir).b;
+    }
+    vec3 n1 = texture(u_tex, v_uv + vec2(-u_px.x, 0.0)).rgb;
+    vec3 n2 = texture(u_tex, v_uv + vec2( u_px.x, 0.0)).rgb;
+    vec3 n3 = texture(u_tex, v_uv + vec2(0.0, -u_px.y)).rgb;
+    vec3 n4 = texture(u_tex, v_uv + vec2(0.0,  u_px.y)).rgb;
+    vec3 blur1 = (col * 2.0 + n1 + n2 + n3 + n4) / 6.0;
+
+    vec3 d1 = texture(u_tex, v_uv + vec2(-u_px.x * 2.5, -u_px.y * 2.5)).rgb;
+    vec3 d2 = texture(u_tex, v_uv + vec2( u_px.x * 2.5, -u_px.y * 2.5)).rgb;
+    vec3 d3 = texture(u_tex, v_uv + vec2(-u_px.x * 2.5,  u_px.y * 2.5)).rgb;
+    vec3 d4 = texture(u_tex, v_uv + vec2( u_px.x * 2.5,  u_px.y * 2.5)).rgb;
+    vec3 blur2 = (blur1 + d1 + d2 + d3 + d4) / 5.0;
     float skinMask = smoothstep(0.04, 0.14, col.r - col.g) * smoothstep(0.02, 0.12, col.g - col.b);
     if (u_ruido > 0.01 || u_piel > 0.01) {
       float diff = length(col - blur2);
@@ -544,7 +563,6 @@ function clonarEnCanvas(cx, cy) {
   ctxC.drawImage(canvasImagenLimpiaInpaint, srcX - radio, srcY - radio, radio * 2, radio * 2, destX - radio, destY - radio, radio * 2, radio * 2);
   ctxC.restore();
 }
-
 if (canvasMejora) {
   canvasMejora.addEventListener("pointerdown", (e) => {
     if (!imagenBaseInmutable || !canvasResultadoFinal) return;
@@ -709,33 +727,47 @@ function generarMiniaturaBase64(maxLado = 512) {
   c.getContext("2d").drawImage(imagenBaseInmutable, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", 0.7).replace(/^data:image\/jpeg;base64,/, "");
 }
+let intencionIaSeleccionada = "Mejora fotográfica equilibrada y natural";
+
+document.querySelectorAll(".btn-intencion-ia").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const yaActivo = btn.classList.contains("btn-activo-swap");
+    document.querySelectorAll(".btn-intencion-ia").forEach((b) => b.classList.remove("btn-activo-swap"));
+    if (yaActivo) {
+      intencionIaSeleccionada = "Mejora fotográfica equilibrada y natural";
+    } else {
+      btn.classList.add("btn-activo-swap");
+      intencionIaSeleccionada = btn.dataset.intencion;
+      if (btnAutoIaMejorador && imagenBaseInmutable) btnAutoIaMejorador.click();
+    }
+  });
+});
+
 function aplicarConfiguracionIa(cfg) {
   if (!cfg) return;
-  if (textoDiagnosticoIa && cfg.diagnostico) {
+  const textoDiag = cfg.diagnostico_corto || cfg.diagnostico;
+  if (textoDiagnosticoIa && textoDiag) {
     textoDiagnosticoIa.style.display = "block";
-    textoDiagnosticoIa.textContent = `🤖 IA: ${cfg.diagnostico}`;
+    textoDiagnosticoIa.textContent = `🤖 IA: ${textoDiag}`;
   }
   presetsActivos.clear();
   Object.values(definicionPresets).forEach((d) => { if (d.btn) d.btn.classList.remove("btn-activo-swap"); });
 
-  if (Array.isArray(cfg.presets)) {
-    const mapaNombres = { "Reconstructor Sub-Píxel HD": "reconstructor", "Retrato Natural": "retrato", "Salvar Difícil": "estudio", "Rescate HDR": "luz", "Luma Sharpen": "nitidez" };
-    cfg.presets.forEach((nombre) => {
-      const clave = Object.keys(mapaNombres).find((k) => nombre.toLowerCase().includes(k.toLowerCase()));
-      if (clave && definicionPresets[mapaNombres[clave]]) {
-        presetsActivos.add(mapaNombres[clave]);
-        definicionPresets[mapaNombres[clave]].btn?.classList.add("btn-activo-swap");
-      }
-    });
-  }
-
-  const mapaSliders = { reconstruccion: mejoraReconstruccion, nitidez: mejoraNitidez, claridad: mejoraClaridad, piel: mejoraPiel, ruido: mejoraRuido, sombras: mejoraSombras, luces: mejoraLuces, dehaze: mejoraDehaze, brillo: mejoraBrillo, contraste: mejoraContraste, saturacion: mejoraSaturacion, temperatura: mejoraTemperatura };
+  const ajustes = cfg.ajustes || cfg;
+  const mapaSliders = {
+    reconstruccion: mejoraReconstruccion, nitidez: mejoraNitidez, claridad: mejoraClaridad,
+    piel: mejoraPiel, ruido: mejoraRuido, aberracion: mejoraAberracion, grano: mejoraGrano,
+    sombras: mejoraSombras, luces: mejoraLuces, dehaze: mejoraDehaze,
+    brillo: mejoraBrillo, contraste: mejoraContraste, saturacion: mejoraSaturacion, temperatura: mejoraTemperatura
+  };
   Object.entries(mapaSliders).forEach(([k, el]) => {
-    if (el && typeof cfg[k] === "number") el.value = Math.max(Number(el.min), Math.min(Number(el.max), Math.round(cfg[k])));
+    if (el && typeof ajustes[k] === "number") {
+      el.value = Math.max(Number(el.min), Math.min(Number(el.max), Math.round(ajustes[k])));
+    }
   });
   procesarImagenMejorador(false, false);
 }
-if (btnAutoIaMejorador) function analizarFotoLocalmente() {
+function analizarFotoLocalmente() {
   const c = document.createElement("canvas");
   c.width = 160; c.height = 160;
   const ctxL = c.getContext("2d");
@@ -759,26 +791,15 @@ if (btnAutoIaMejorador) function analizarFotoLocalmente() {
   const esOscura = media < 95;
   const esPlana = desv < 42;
 
-  const presets = ["Reconstructor Sub-Píxel HD"];
-  if (esRetrato) presets.push("Retrato Natural");
-  if (esOscura) presets.push("Rescate HDR");
-  if (ruidoEst > 14) presets.push("Salvar Difícil");
-
   return {
-    diagnostico: `Análisis inteligente: ${esOscura ? "foto con poca luz" : "buena exposición"}, ${esRetrato ? "retrato detectado (piel protegida)" : "escena general"} y ${esPlana ? "bajo contraste" : "rango dinámico equilibrado"}.`,
-    presets,
-    reconstruccion: 58,
-    nitidez: esRetrato ? 28 : 44,
-    claridad: esPlana ? 34 : 20,
-    piel: esRetrato ? 48 : 0,
-    ruido: ruidoEst > 14 ? 42 : 20,
-    sombras: esOscura ? 40 : 18,
-    luces: media > 175 ? 35 : 15,
-    dehaze: esPlana ? 26 : 10,
-    brillo: esOscura ? 12 : 0,
-    contraste: esPlana ? 14 : 6,
-    saturacion: 8,
-    temperatura: esRetrato ? 5 : 0
+    diagnostico_corto: `Motor local: ${esOscura ? "poca luz detectada" : "exposición equilibrada"}, ${esRetrato ? "retrato con protección de piel" : "escena general"} y ${esPlana ? "contraste reforzado" : "rango dinámico óptimo"}.`,
+    ajustes: {
+      reconstruccion: 58, nitidez: esRetrato ? 28 : 44, claridad: esPlana ? 34 : 20,
+      piel: esRetrato ? 48 : 0, ruido: ruidoEst > 14 ? 42 : 20, aberracion: 25,
+      grano: 8, sombras: esOscura ? 40 : 18, luces: media > 175 ? 35 : 15,
+      dehaze: esPlana ? 26 : 10, brillo: esOscura ? 12 : 0, contraste: esPlana ? 14 : 6,
+      saturacion: 8, temperatura: esRetrato ? 5 : 0
+    }
   };
 }
 if (btnAutoIaMejorador) {
@@ -787,28 +808,42 @@ if (btnAutoIaMejorador) {
     const apiKey = (inputApiKeyGemini?.value || localStorage.getItem("livestudio_gemini_key") || "").trim();
 
     if (!apiKey || apiKey.startsWith("AQ.")) {
-      const cfgLocal = analizarFotoLocalmente();
-      aplicarConfiguracionIa(cfgLocal);
-      if (apiKey.startsWith("AQ.") && textoDiagnosticoIa) {
-        textoDiagnosticoIa.textContent += " (Nota: las claves AQ. son de Vertex Cloud; se aplicó el motor inteligente local).";
-      }
+      aplicarConfiguracionIa(analizarFotoLocalmente());
       return;
     }
 
     const textoOrig = btnAutoIaMejorador.textContent;
     btnAutoIaMejorador.disabled = true;
-    btnAutoIaMejorador.textContent = "⏳ Analizando iluminación y ruido...";
+    btnAutoIaMejorador.textContent = "⏳ Analizando con Gemini Vision...";
 
     try {
       const base64Img = generarMiniaturaBase64(512);
-      const promptSistema = `Analizá esta foto (iluminación, ruido, nitidez y rostros) y devolvé SOLO un objeto JSON válido con: "diagnostico" (1 oración corta en español), "presets" (array de strings elegidos entre: "Reconstructor Sub-Píxel HD", "Retrato Natural", "Salvar Difícil", "Rescate HDR", "Luma Sharpen"), y valores numéricos enteros recomendados para: "reconstruccion" (0-100), "nitidez" (0-100), "claridad" (0-100), "piel" (0-100), "ruido" (0-100), "sombras" (0-100), "luces" (0-100), "dehaze" (0-100), "brillo" (-50 a 50), "contraste" (-50 a 50), "saturacion" (-50 a 50), "temperatura" (-50 a 50).`;
+      const promptSistema = `Actuá como editor fotográfico profesional. Intención del usuario: "${intencionIaSeleccionada}". Analizá la iluminación, ruido, nitidez y rostros de esta foto, explicá brevemente en "diagnostico_corto" qué detectaste y por qué aplicás estos ajustes, y devolvé los valores enteros exactos para los 14 deslizadores.`;
 
+      const esquemaJson = {
+        type: "OBJECT",
+        properties: {
+          diagnostico_corto: { type: "STRING" },
+          ajustes: {
+            type: "OBJECT",
+            properties: {
+              reconstruccion: { type: "INTEGER" }, nitidez: { type: "INTEGER" }, claridad: { type: "INTEGER" },
+              piel: { type: "INTEGER" }, ruido: { type: "INTEGER" }, aberracion: { type: "INTEGER" },
+              grano: { type: "INTEGER" }, sombras: { type: "INTEGER" }, luces: { type: "INTEGER" },
+              dehaze: { type: "INTEGER" }, brillo: { type: "INTEGER" }, contraste: { type: "INTEGER" },
+              saturacion: { type: "INTEGER" }, temperatura: { type: "INTEGER" }
+            },
+            required: ["reconstruccion", "nitidez", "claridad", "piel", "ruido", "aberracion", "grano", "sombras", "luces", "dehaze", "brillo", "contraste", "saturacion", "temperatura"]
+          }
+        },
+        required: ["diagnostico_corto", "ajustes"]
+      };
       const resp = await fetch("https://googleapis.com", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           contents: [{ parts: [{ text: promptSistema }, { inline_data: { mime_type: "image/jpeg", data: base64Img } }] }],
-          generationConfig: { responseMimeType: "application/json" }
+          generationConfig: { responseMimeType: "application/json", responseSchema: esquemaJson }
         })
       });
 
@@ -820,15 +855,13 @@ if (btnAutoIaMejorador) {
       if (!jsonTexto) throw new Error("Sin respuesta");
       aplicarConfiguracionIa(JSON.parse(jsonTexto));
     } catch (err) {
-      const cfgFallback = analizarFotoLocalmente();
-      aplicarConfiguracionIa(cfgFallback);
+      aplicarConfiguracionIa(analizarFotoLocalmente());
     } finally {
       btnAutoIaMejorador.disabled = false;
       btnAutoIaMejorador.textContent = textoOrig;
     }
   });
 }
-
 if (btnCopiarPromptIa) {
   btnCopiarPromptIa.addEventListener("click", async () => {
     if (!imagenBaseInmutable) return alert("Primero subí una imagen.");

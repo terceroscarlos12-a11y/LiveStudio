@@ -1,4 +1,4 @@
-const CACHE_NAME = "livestudio-v40";
+const CACHE_NAME = "livestudio-v41";
 const ARCHIVOS_CACHE = [
   "./",
   "./index.html",

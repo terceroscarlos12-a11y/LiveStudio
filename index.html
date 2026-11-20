@@ -444,12 +444,18 @@
             <span id="badge-ia-local" class="ayuda-texto" style="display:block; margin-bottom:6px; color:#38BDF8;">⚡ Motor GPU/CPU local listo (100% offline)</span>
             <p id="texto-diagnostico-ia" style="display:none; background:#0F172A; border-left:3px solid #38BDF8; padding:7px 9px; border-radius:6px; font-size:0.78rem; color:#E2E8F0; margin-bottom:8px; line-height:1.35;"></p>
 
+            <div class="fila-triple" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 6px; gap: 4px;">
+              <button type="button" class="btn-secundario btn-intencion-ia" data-intencion="Estilo Revista Editorial con piel limpia y contraste cinematográfico" style="font-size:0.74rem; padding:6px 4px;">📰 Revista</button>
+              <button type="button" class="btn-secundario btn-intencion-ia" data-intencion="Rescatar Foto Oscura levantando sombras y limpiando ruido sin lavar negros" style="font-size:0.74rem; padding:6px 4px;">🌙 Oscura</button>
+              <button type="button" class="btn-secundario btn-intencion-ia" data-intencion="Nitidez Natural HD recuperando ojos y cabello sin exagerar colores" style="font-size:0.74rem; padding:6px 4px;">💎 Natural</button>
+            </div>
+
             <button type="button" id="btn-auto-ia-mejorador" class="btn-primario" style="width:100%; margin-bottom:6px;">✨ Analizar y Auto-configurar con IA</button>
             <button type="button" id="btn-copiar-prompt-ia" class="btn-secundario" style="width:100%; margin-bottom:8px; font-size:0.8rem;">📋 Copiar Foto + Prompt para Gemini</button>
 
             <label for="input-api-key-gemini" style="display:block; font-size:0.76rem; color:#9FB3C8; margin-bottom:4px;">Tu API Key gratuita de Google AI Studio (opcional):</label>
             <div class="fila-doble" style="margin-bottom:6px;">
-              <input type="password" id="input-api-key-gemini" placeholder="AQ... o AIzaSy..." style="font-size:0.8rem;">
+              <input type="password" id="input-api-key-gemini" placeholder="AIzaSy..." style="font-size:0.8rem;">
               <button type="button" id="btn-guardar-key-gemini" class="btn-secundario">💾 Guardar</button>
             </div>
 
@@ -458,7 +464,7 @@
               <ol style="margin:6px 0 0 16px; line-height:1.45;">
                 <li>Entrá a <a href="https://google.com" target="_blank" rel="noopener" style="color:#38BDF8; text-decoration:underline;">Google AI Studio</a> con tu cuenta de Google.</li>
                 <li>Tocá <strong>"Create API key"</strong> y elegí un proyecto nuevo (es gratis y sin tarjeta).</li>
-                <li>Copiá tu clave (empieza con <code>AQ...</code> o <code>AIzaSy...</code>).</li>
+                <li>Copiá tu clave que empieza con <code>AIzaSy...</code>.</li>
                 <li>Pegala arriba y tocá <strong>💾 Guardar</strong> (queda guardado solo en tu dispositivo).</li>
               </ol>
             </details>
