@@ -1,4 +1,4 @@
-const CACHE_NAME = "livestudio-v11";
+const CACHE_NAME = "livestudio-v37";
 const ARCHIVOS_CACHE = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const ARCHIVOS_CACHE = [
   "./css/style.css",
   "./js/app.js",
   "./js/storage.js",
+  "./js/mejorador.js",
   "./img/icon-192.png",
   "./img/icon-512.png",
   "./img/logo.header.svg",
@@ -32,9 +33,11 @@ self.addEventListener("activate", (event) => {
   );
   self.clients.claim();
 });
-
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
     caches.match(event.request).then((respuestaCache) => {
       return respuestaCache || fetch(event.request).catch(() => {

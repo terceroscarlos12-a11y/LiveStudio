@@ -24,6 +24,7 @@
       <button class="tab-btn" data-target="sec-photocards">🎴 Photocards</button>
       <button class="tab-btn" data-target="sec-calendario">📅 Calendario</button>
       <button class="tab-btn" data-target="sec-collage">🖼️ Collage</button>
+      <button class="tab-btn" data-target="sec-mejorador">✨ Mejorador</button>
     </nav>
     <div class="header-acciones">
       <span id="badge-offline" class="badge-offline" hidden>Sin conexión</span>
@@ -36,7 +37,6 @@
       <aside class="panel-controles">
         <h2>1. Subí tu imagen</h2>
         <input type="file" id="input-imagen" accept="image/*">
-        
         <h2>2. Elegí el dispositivo</h2>
         <select id="select-dispositivo">
           <optgroup label="Apple iPhone">
@@ -189,7 +189,6 @@
           <label for="cal-range-zoom">Zoom Foto Calendario</label>
           <input type="range" id="cal-range-zoom" min="100" max="200" value="100">
         </div>
-
         <h2>4. Color Oficial de Grupo / Idol</h2>
         <select id="select-color-cal">
           <optgroup label="Grupos K-pop">
@@ -226,6 +225,12 @@
         </select>
 
         <h2>5. Marcar Fechas Especiales (Tocá una etiqueta para editar)</h2>
+        <select id="select-vista-eventos-cal" style="margin-bottom: 8px;">
+          <option value="ambos">Mostrar: Dentro de cada día + Lista inferior</option>
+          <option value="grilla">Mostrar: Solo dentro de cada día</option>
+          <option value="inferior">Mostrar: Solo en la lista inferior</option>
+        </select>
+
         <div class="fila-triple" style="grid-template-columns: 1fr 1.4fr 0.7fr;">
           <input type="number" id="input-dia-evento" placeholder="Día" min="1" max="31">
           <select id="select-icono-evento">
@@ -240,7 +245,54 @@
           <input type="text" id="input-texto-evento" placeholder="Ej: Cumple de Wonyoung">
           <button type="button" id="btn-agregar-evento" class="btn-secundario">+</button>
         </div>
-        <div id="lista-eventos-chips" class="chips-container"></div>
+
+        <details id="acordeon-chips-cal" style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px;">
+          <summary id="titulo-chips-cal" style="cursor: pointer; font-weight: 700; color: #C6DCF3; font-size: 0.88rem;">🎂 Ver / Editar Fechas del Mes (0) ▾</summary>
+          <div id="lista-eventos-chips" class="chips-container" style="margin-top: 8px; max-height: 220px; overflow-y: auto;"></div>
+        </details>
+        <details style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px;">
+          <summary style="cursor: pointer; font-weight: 700; color: #C6DCF3; font-size: 0.88rem;">📋 Carga Masiva (Pegar 100+ cumpleaños) ▾</summary>
+          <div style="margin-top: 8px;">
+            <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:6px;">
+              Formato: <strong>DD/MM Nombre (Grupo) #HEX</strong> (el #HEX es opcional):
+            </small>
+            <textarea id="textarea-masivo-cal" rows="5" placeholder="01/01 Winter (aespa) #80C1FF&#10;03/01 Jisoo (BLACKPINK) #F8A1D1&#10;29/12 Sana (TWICE) #9B5DE5" style="width:100%; border-radius:8px; padding:8px; background:#0F172A; color:#F8FAFC; border:1px solid #334155; font-size:0.82rem; resize:vertical;"></textarea>
+            <div class="fila-doble" style="margin-top: 6px;">
+              <button type="button" id="btn-importar-masivo-cal" class="btn-primario">✨ Importar Todos</button>
+              <button type="button" id="btn-exportar-masivo-cal" class="btn-secundario">📤 Copiar Lista</button>
+            </div>
+          </div>
+        </details>
+
+        <details style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px;">
+          <summary style="cursor: pointer; font-weight: 700; color: #C6DCF3; font-size: 0.88rem;">🔔 Exportar Recordatorios al Celular (.ics) ▾</summary>
+          <div style="margin-top: 8px;">
+            <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:6px; line-height:1.35;">
+              💡 <strong>Tip:</strong> Al abrir el archivo <code>.ics</code> en Google Calendar o iPhone, creá un calendario nuevo llamado <em>"Cumpleaños K-pop"</em> para activarlo o borrarlo fácil cuando quieras.
+            </small>
+            <select id="select-ics-alcance" style="margin-bottom: 6px;">
+              <option value="todos">Alcance: Todos los cumpleaños cargados</option>
+              <option value="mes">Alcance: Solo el mes actual</option>
+            </select>
+            <select id="select-ics-horario" style="margin-bottom: 8px;">
+              <option value="ambos">🇰🇷 KST + 🌎 Local (2 avisos)</option>
+              <option value="kst">🇰🇷 Solo Hora Corea (00:00 KST)</option>
+              <option value="local">🌎 Solo Hora Local</option>
+            </select>
+            <button type="button" id="btn-descargar-ics" class="btn-primario" style="width:100%;">📲 Descargar Archivo .ICS</button>
+          </div>
+        </details>
+
+        <details id="acordeon-notas-mes" style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px;">
+          <summary id="titulo-notas-mes" style="cursor: pointer; font-weight: 700; color: #C6DCF3; font-size: 0.88rem;">📝 Notas de este mes (Comebacks / Eventos) ▾</summary>
+          <div style="margin-top: 8px;">
+            <textarea id="textarea-notas-mes" rows="3" placeholder="Ej: Comeback de IVE, concierto, comprar álbum..." style="width:100%; border-radius:8px; padding:8px; background:#0F172A; color:#F8FAFC; border:1px solid #334155; font-size:0.82rem; resize:vertical;"></textarea>
+            <div class="fila-doble" style="margin-top: 6px;">
+              <button type="button" id="btn-guardar-notas-mes" class="btn-primario">💾 Guardar Nota</button>
+              <button type="button" id="btn-limpiar-notas-mes" class="btn-chico">✕ Borrar Nota</button>
+            </div>
+          </div>
+        </details>
 
         <button id="btn-descargar-cal-anual" class="btn-primario">📚 Descargar Año Completo (12 Págs PDF)</button>
         <button id="btn-descargar-cal-pdf" class="btn-secundario">Descargar Solo Este Mes (PDF)</button>
@@ -288,7 +340,6 @@
           <button type="button" id="btn-quitar-slot-collage" class="btn-chico">✕ Vaciar celda</button>
         </div>
         <div id="galeria-collage" class="galeria-miniaturas"></div>
-
         <div class="control-rango">
           <label for="collage-pos-x">Mover foto elegida (Izq / Der)</label>
           <input type="range" id="collage-pos-x" min="0" max="100" value="50">
@@ -333,6 +384,188 @@
         </div>
       </div>
     </section>
+    <section id="sec-mejorador" class="seccion">
+      <aside class="panel-controles">
+        <h2>1. Subí la imagen a mejorar</h2>
+        <input type="file" id="input-foto-mejora" accept="image/*">
+        <span id="badge-gpu" class="ayuda-texto">⚡ Motor GPU activado</span>
+
+        <div class="fila-doble" style="margin: 10px 0;">
+          <button type="button" id="btn-nivel-principiante" class="btn-primario">🟢 Principiante</button>
+          <button type="button" id="btn-nivel-avanzado" class="btn-secundario">⚙️ Avanzado</button>
+        </div>
+
+        <h2>2. Adaptar Orientación sin Recorte</h2>
+        <div class="fila-doble">
+          <select id="select-orientacion-mejora">
+            <option value="original">Formato: Original</option>
+            <option value="16:9">Horizontal 16:9 (PC / TV)</option>
+            <option value="4:3">Horizontal 4:3 (Clásico)</option>
+            <option value="9:16">Vertical 9:16 (Celular / Story)</option>
+            <option value="1:1">Cuadrado 1:1 (Post)</option>
+          </select>
+          <select id="select-modo-extension">
+            <option value="content">Extensión Nítida (Content-Aware)</option>
+            <option value="ia_outpaint">Reconstrucción Suave (Sin Letras)</option>
+            <option value="blur">Fondo Ambiental Blur</option>
+            <option value="espejo">Espejado Difuminado</option>
+          </select>
+        </div>
+        <button type="button" id="btn-reconstruir-entorno" class="btn-primario" style="margin-top:6px;">🪄 Reconstruir Fondo Píxel a Píxel</button>
+
+        <div class="solo-avanzado" hidden>
+          <h2>3. Pincel Mágico: Seleccionar, Borrar o Clonar</h2>
+          <div class="fila-triple" style="grid-template-columns: 1fr 1fr 1fr;">
+            <button type="button" id="btn-pincel-seleccionar" class="btn-primario">🖌️ Seleccionar</button>
+            <button type="button" id="btn-borrador-magico" class="btn-secundario">🧹 Borrar</button>
+            <button type="button" id="btn-pincel-clonar" class="btn-secundario">🩺 Clonar</button>
+          </div>
+          <div class="control-rango" style="margin-top:8px;">
+            <label for="rango-tamano-pincel">Grosor del Pincel: <strong id="val-tamano-pincel">35px</strong></label>
+            <input type="range" id="rango-tamano-pincel" min="8" max="120" value="35">
+          </div>
+          <div class="fila-doble">
+            <button type="button" id="btn-aplicar-pincel" class="btn-primario">✓ Aplicar Pincel</button>
+            <button type="button" id="btn-modo-crop" class="btn-secundario">✂️ Recorte Manual</button>
+          </div>
+          <div class="fila-doble" style="margin-top:6px;">
+            <button type="button" id="btn-limpiar-trazos" class="btn-chico">↺ Borrar Trazos</button>
+            <select id="select-fondo-aislado">
+              <option value="original">Fondo: Original</option>
+              <option value="transparente">Transparente (PNG)</option>
+              <option value="bokeh">Bokeh Desenfocado</option>
+              <option value="photocard">Pastel Photocard</option>
+            </select>
+          </div>
+        </div>
+        <h2>4. Presets Fotográficos (Combinables)</h2>
+        <p class="ayuda-texto" style="margin-bottom:8px; line-height:1.35;">
+          💡 <strong>Tip rápido:</strong> Tocá un preset para mejorar la foto automáticamente. Si querés ajustes manuales finos, activá <strong>⚙️ Avanzado</strong> arriba.
+        </p>
+        <button type="button" id="btn-reconstructor-hd" class="btn-primario">🧬 Reconstructor Sub-Píxel HD (GPU)</button>
+        <div class="fila-doble">
+          <button type="button" id="btn-retrato-natural" class="btn-secundario">🌸 Retrato Natural</button>
+          <button type="button" id="btn-modo-estudio" class="btn-secundario">🚀 Salvar Difícil</button>
+        </div>
+        <div class="fila-doble">
+          <button type="button" id="btn-auto-luz" class="btn-secundario">☀️ + Rescate HDR</button>
+          <button type="button" id="btn-auto-nitidez" class="btn-secundario">🔍 + Luma Sharpen</button>
+        </div>
+        <button type="button" id="btn-restaurar-mejora" class="btn-chico" style="width:100%;">↺ Restaurar Todo (0%)</button>
+        <details class="solo-avanzado" hidden style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px;">
+          <summary style="cursor: pointer; font-weight: 700; color: #C6DCF3; font-size: 0.92rem;">5. Detalle Óptico, CLAHE y Piel ▾</summary>
+          <div style="margin-top: 10px;">
+            <div class="control-rango">
+              <label for="mejora-reconstruccion">Enfoque de Contornos (Luma): <strong id="val-reconstruccion">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Define ojos, pestañas y bordes sin manchar los colores.</small>
+              <input type="range" id="mejora-reconstruccion" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-nitidez">Textura Fina (Cabello y Ropa): <strong id="val-nitidez">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Resalta micro-detalles de 1 a 2 píxeles; bajalo si aparece ruido.</small>
+              <input type="range" id="mejora-nitidez" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-claridad">Profundidad y Relieve (CLAHE): <strong id="val-claridad">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Da volumen y contraste local para que la foto no se vea plana.</small>
+              <input type="range" id="mejora-claridad" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-piel">Suavizado de Piel Natural: <strong id="val-piel">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Empareja imperfecciones del rostro manteniendo textura real.</small>
+              <input type="range" id="mejora-piel" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-ruido">Limpiar Pixelado / Ruido: <strong id="val-ruido">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Ideal para fotos comprimidas de WhatsApp, redes o poca luz.</small>
+              <input type="range" id="mejora-ruido" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-aberracion">Quitar Bordes Violetas/Verdes: <strong id="val-aberracion">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Corrige halos de color en siluetas a contraluz.</small>
+              <input type="range" id="mejora-aberracion" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-grano">Grano Fílmico Fino: <strong id="val-grano">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Agrega textura orgánica de cámara analógica al ampliar.</small>
+              <input type="range" id="mejora-grano" min="0" max="100" value="0">
+            </div>
+          </div>
+        </details>
+        <details class="solo-avanzado" hidden style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px;">
+          <summary style="cursor: pointer; font-weight: 700; color: #C6DCF3; font-size: 0.92rem;">6. Luminosidad HSL y Color Fiel ▾</summary>
+          <div style="margin-top: 10px;">
+            <div class="control-rango">
+              <label for="mejora-sombras">Iluminar Zonas Oscuras: <strong id="val-sombras">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Rescata detalles ocultos en cabello negro o ropa oscura.</small>
+              <input type="range" id="mejora-sombras" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-luces">Suavizar Brillos Quemados: <strong id="val-luces">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Recupera detalle en frentes iluminadas, focos o ropa blanca.</small>
+              <input type="range" id="mejora-luces" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-dehaze">Quitar Neblina / Opacidad: <strong id="val-dehaze">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Elimina el velo grisáceo de fotos lavadas o con humo.</small>
+              <input type="range" id="mejora-dehaze" min="0" max="100" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-brillo">Luz General (Exposición): <strong id="val-brillo">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Aclara u oscurece toda la imagen sin alterar los tonos.</small>
+              <input type="range" id="mejora-brillo" min="-50" max="50" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-contraste">Contraste Fílmico: <strong id="val-contraste">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Profundiza negros y realza luces con acabado profesional.</small>
+              <input type="range" id="mejora-contraste" min="-50" max="50" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-saturacion">Intensidad de Color (Vibrancia): <strong id="val-saturacion">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Aviva fondos y ropa protegiendo el tono natural de la piel.</small>
+              <input type="range" id="mejora-saturacion" min="-50" max="50" value="0">
+            </div>
+            <div class="control-rango">
+              <label for="mejora-temperatura">Temperatura (Frío / Cálido): <strong id="val-temperatura">0%</strong></label>
+              <small style="display:block; color:#9FB3C8; font-size:0.75rem; margin-bottom:4px;">Izquierda: tono azulado frío • Derecha: tono dorado cálido.</small>
+              <input type="range" id="mejora-temperatura" min="-50" max="50" value="0">
+            </div>
+          </div>
+        </details>
+
+        <h2>7. Escala, Vista y Envío Rápido</h2>
+        <select id="select-escala-mejora">
+          <option value="1">Tamaño Original (1x)</option>
+          <option value="2">Reconstruir 2x HD (Photocards / Celular)</option>
+          <option value="3">Reconstruir 3x Full HD (Calendarios A4)</option>
+          <option value="4">Reconstruir 4x Ultra HD (Pósters / 4K)</option>
+        </select>
+        <select id="select-vista-mejora">
+          <option value="lado">Vista: Lado a Lado (Original vs Reconstruida)</option>
+          <option value="cortina">Vista: Cortina Deslizante</option>
+          <option value="unica">Vista: Solo Imagen Reconstruida</option>
+        </select>
+        <label class="checkbox-label">
+          <input type="checkbox" id="check-lupa-mejora" checked>
+          🔬 Lupa de Inspección Píxel a Píxel (4x)
+        </label>
+        <div class="fila-doble">
+          <button type="button" id="btn-enviar-adaptador" class="btn-secundario">📱 A Adaptador</button>
+          <button type="button" id="btn-enviar-collage" class="btn-secundario">🖼️ A Collage</button>
+        </div>
+        <div class="fila-doble" style="margin-top: 6px;">
+          <button type="button" id="btn-enviar-poca" class="btn-secundario">🎴 A Photocards</button>
+          <button type="button" id="btn-enviar-cal" class="btn-secundario">📅 A Calendario</button>
+        </div>
+        <button id="btn-descargar-mejora" class="btn-primario" style="margin-top: 8px;">Descargar Imagen Final (PNG)</button>
+      </aside>
+
+      <div class="area-preview">
+        <div class="hoja-a4" style="background: transparent; box-shadow: none; position: relative;">
+          <canvas id="canvas-mejorador" style="border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); cursor: crosshair; touch-action: none;"></canvas>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div id="modal-ios" class="modal-ios" hidden>
@@ -346,6 +579,7 @@
 
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/mejorador.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       let recargando = false;
