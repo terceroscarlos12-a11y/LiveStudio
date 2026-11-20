@@ -438,39 +438,6 @@
             </select>
           </div>
         </div>
-        <details style="margin: 10px 0; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 8px 10px; background: rgba(15, 23, 42, 0.65);">
-          <summary style="cursor: pointer; font-weight: 700; color: #7DD3FC; font-size: 0.9rem;">🤖 Asistente Fotográfico IA (Opcional) ▾</summary>
-          <div style="margin-top: 8px;">
-            <span id="badge-ia-local" class="ayuda-texto" style="display:block; margin-bottom:6px; color:#38BDF8;">⚡ Motor GPU/CPU local listo (100% offline)</span>
-            <p id="texto-diagnostico-ia" style="display:none; background:#0F172A; border-left:3px solid #38BDF8; padding:7px 9px; border-radius:6px; font-size:0.78rem; color:#E2E8F0; margin-bottom:8px; line-height:1.35;"></p>
-
-            <div class="fila-triple" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 6px; gap: 4px;">
-              <button type="button" class="btn-secundario btn-intencion-ia" data-intencion="Estilo Revista Editorial con piel limpia y contraste cinematográfico" style="font-size:0.74rem; padding:6px 4px;">📰 Revista</button>
-              <button type="button" class="btn-secundario btn-intencion-ia" data-intencion="Rescatar Foto Oscura levantando sombras y limpiando ruido sin lavar negros" style="font-size:0.74rem; padding:6px 4px;">🌙 Oscura</button>
-              <button type="button" class="btn-secundario btn-intencion-ia" data-intencion="Nitidez Natural HD recuperando ojos y cabello sin exagerar colores" style="font-size:0.74rem; padding:6px 4px;">💎 Natural</button>
-            </div>
-
-            <button type="button" id="btn-auto-ia-mejorador" class="btn-primario" style="width:100%; margin-bottom:6px;">✨ Analizar y Auto-configurar con IA</button>
-            <button type="button" id="btn-copiar-prompt-ia" class="btn-secundario" style="width:100%; margin-bottom:8px; font-size:0.8rem;">📋 Copiar Foto + Prompt para Gemini</button>
-
-            <label for="input-api-key-gemini" style="display:block; font-size:0.76rem; color:#9FB3C8; margin-bottom:4px;">Tu API Key gratuita de Google AI Studio (opcional):</label>
-            <div class="fila-doble" style="margin-bottom:6px;">
-              <input type="password" id="input-api-key-gemini" placeholder="AIzaSy..." style="font-size:0.8rem;">
-              <button type="button" id="btn-guardar-key-gemini" class="btn-secundario">💾 Guardar</button>
-            </div>
-
-            <details style="margin-top:6px; font-size:0.75rem; color:#9FB3C8;">
-              <summary style="cursor:pointer; color:#BAE6FD;">🔑 ¿Cómo obtener tu clave gratuita en 30 segundos?</summary>
-              <ol style="margin:6px 0 0 16px; line-height:1.45;">
-                <li>Entrá a <a href="https://google.com" target="_blank" rel="noopener" style="color:#38BDF8; text-decoration:underline;">Google AI Studio</a> con tu cuenta de Google.</li>
-                <li>Tocá <strong>"Create API key"</strong> y elegí un proyecto nuevo (es gratis y sin tarjeta).</li>
-                <li>Copiá tu clave que empieza con <code>AIzaSy...</code>.</li>
-                <li>Pegala arriba y tocá <strong>💾 Guardar</strong> (queda guardado solo en tu dispositivo).</li>
-              </ol>
-            </details>
-          </div>
-        </details>
-
         <h2>4. Presets Fotográficos (Combinables)</h2>
         <p class="ayuda-texto" style="margin-bottom:8px; line-height:1.35;">
           💡 <strong>Tip rápido:</strong> Tocá un preset para mejorar la foto automáticamente. Si querés ajustes manuales finos, activá <strong>⚙️ Avanzado</strong> arriba.

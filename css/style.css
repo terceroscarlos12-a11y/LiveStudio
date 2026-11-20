@@ -456,30 +456,3 @@ input[type="color"] {
   color: var(--celeste);
   line-height: 1.4;
 }
-.galeria-miniaturas {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
-  gap: 8px;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.mini-slot {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  border-radius: 8px;
-}
-
-.mini-slot img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  display: block;
-}
-
-.hoja-a4, .hoja-a4 canvas, .marco-celular, .marco-celular canvas {
-  max-width: 100% !important;
-  height: auto !important;
-}
