@@ -342,7 +342,7 @@ function actualizarEtiquetasPorcentaje() {
     ["val-sombras", mejoraSombras], ["val-luces", mejoraLuces], ["val-dehaze", mejoraDehaze],
     ["val-brillo", mejoraBrillo], ["val-contraste", mejoraContraste], ["val-saturacion", mejoraSaturacion], ["val-temperatura", mejoraTemperatura]
   ];
-  pares.forEach(([id, el]) => { const span = document.getElementById(id); if (span && el instanceof HTMLInputElement) span.textContent = `${el.value}%`; });
+  pares.forEach(([id, el]) => { const span = document.getElementById(id); if (span && el) span.textContent = `${el.value}%`; });
   const valPincel = document.getElementById("val-tamano-pincel");
   if (valPincel && rangoTamanoPincel) valPincel.textContent = `${rangoTamanoPincel.value}px`;
 }
@@ -468,7 +468,7 @@ function pintarVistaComparativa() {
   if (modoCropActivo && inicioArrastreCrop) {
     const x = Math.min(inicioArrastreCrop.x1, inicioArrastreCrop.x2), y = Math.min(inicioArrastreCrop.y1, inicioArrastreCrop.y2);
     const cw = Math.abs(inicioArrastreCrop.x2 - inicioArrastreCrop.x1), ch = Math.abs(inicioArrastreCrop.y2 - inicioArrastreCrop.y1);
-    ctxMejora.save(); ctxMejora.strokeStyle = "#FACC15"; ctxMejora.lineWidth = 4; ctxMejora.setLineDash();
+    ctxMejora.save(); ctxMejora.strokeStyle = "#FACC15"; ctxMejora.lineWidth = 4; ctxMejora.setLineDash([]);
     ctxMejora.strokeRect(x, y, cw, ch); ctxMejora.restore();
   }
   if (checkLupaMejora && checkLupaMejora.checked && puntoLupa && !modoPincel && !modoCropActivo) {
@@ -649,7 +649,6 @@ if (btnEnviarAdaptador) btnEnviarAdaptador.addEventListener("click", () => envia
 if (btnEnviarCollage) btnEnviarCollage.addEventListener("click", () => enviarResultadoAInput("input-foto-collage", "sec-collage"));
 if (btnEnviarPoca) btnEnviarPoca.addEventListener("click", () => enviarResultadoAInput("input-foto-poca", "sec-photocards"));
 if (btnEnviarCal) btnEnviarCal.addEventListener("click", () => enviarResultadoAInput("input-foto-cal", "sec-calendario"));
-
 if (btnDescargarMejora) {
   btnDescargarMejora.addEventListener("click", () => {
     if (!imagenBaseInmutable) return alert("Primero subí una imagen.");
@@ -661,6 +660,7 @@ if (btnDescargarMejora) {
     procesarImagenMejorador(false, false);
   });
 }
+
 function cambiarNivelMejorador(esAvanzado) {
   document.querySelectorAll("#sec-mejorador .solo-avanzado").forEach((el) => { el.hidden = !esAvanzado; });
   if (btnNivelPrincipiante) btnNivelPrincipiante.className = esAvanzado ? "btn-secundario" : "btn-primario";
@@ -669,7 +669,6 @@ function cambiarNivelMejorador(esAvanzado) {
 
 if (btnNivelPrincipiante) btnNivelPrincipiante.addEventListener("click", () => cambiarNivelMejorador(false));
 if (btnNivelAvanzado) btnNivelAvanzado.addEventListener("click", () => cambiarNivelMejorador(true));
-
 const badgeIaLocal = document.getElementById("badge-ia-local");
 const textoDiagnosticoIa = document.getElementById("texto-diagnostico-ia");
 const btnAutoIaMejorador = document.getElementById("btn-auto-ia-mejorador");
@@ -708,7 +707,7 @@ function generarMiniaturaBase64(maxLado = 512) {
   c.width = Math.max(1, Math.round(imagenBaseInmutable.width * escala));
   c.height = Math.max(1, Math.round(imagenBaseInmutable.height * escala));
   c.getContext("2d").drawImage(imagenBaseInmutable, 0, 0, c.width, c.height);
-  return c.toDataURL("image/jpeg", 0.7).split(",");
+  return c.toDataURL("image/jpeg", 0.7).replace(/^data:image\/jpeg;base64,/, "");
 }
 function aplicarConfiguracionIa(cfg) {
   if (!cfg) return;
@@ -740,7 +739,7 @@ if (btnAutoIaMejorador) {
   btnAutoIaMejorador.addEventListener("click", async () => {
     if (!imagenBaseInmutable) return alert("Primero subí una imagen en el Mejorador.");
     const apiKey = (inputApiKeyGemini?.value || localStorage.getItem("livestudio_gemini_key") || "").trim();
-    if (!apiKey) return alert("Pegá tu API Key gratuita de Google AI Studio (AIzaSy...) o usá el botón 'Copiar Foto + Prompt para Gemini'.");
+    if (!apiKey) return alert("Pegá tu API Key gratuita de Google AI Studio (AQ... o AIzaSy...) o usá el botón 'Copiar Foto + Prompt para Gemini'.");
 
     const textoOrig = btnAutoIaMejorador.textContent;
     btnAutoIaMejorador.disabled = true;
@@ -750,7 +749,6 @@ if (btnAutoIaMejorador) {
       const base64Img = generarMiniaturaBase64(512);
       const promptSistema = `Analizá esta foto (iluminación, ruido, nitidez y rostros) y devolvé SOLO un objeto JSON válido con: "diagnostico" (1 oración corta en español), "presets" (array de strings elegidos entre: "Reconstructor Sub-Píxel HD", "Retrato Natural", "Salvar Difícil", "Rescate HDR", "Luma Sharpen"), y valores numéricos enteros recomendados para: "reconstruccion" (0-100), "nitidez" (0-100), "claridad" (0-100), "piel" (0-100), "ruido" (0-100), "sombras" (0-100), "luces" (0-100), "dehaze" (0-100), "brillo" (-50 a 50), "contraste" (-50 a 50), "saturacion" (-50 a 50), "temperatura" (-50 a 50).`;
       const urlApi = "https://googleapis.com" + encodeURIComponent(apiKey);
-
       const resp = await fetch(urlApi, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -762,7 +760,9 @@ if (btnAutoIaMejorador) {
 
       const data = await resp.json();
       if (!resp.ok) throw new Error(data?.error?.message || "Error al conectar con Google AI Studio.");
-      const jsonTexto = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const primerCandidato = Array.isArray(data?.candidates) ? data.candidates.at(0) : null;
+      const primeraParte = Array.isArray(primerCandidato?.content?.parts) ? primerCandidato.content.parts.at(0) : null;
+      const jsonTexto = primeraParte?.text;
       if (!jsonTexto) throw new Error("La IA no devolvió parámetros.");
       aplicarConfiguracionIa(JSON.parse(jsonTexto));
     } catch (err) {
@@ -779,7 +779,7 @@ if (btnCopiarPromptIa) {
     const promptManual = "Actuá como editor fotográfico profesional. Analizá la iluminación, ruido y nitidez de esta foto e indicame qué valores (de 0 a 100) recomiendás para: Nitidez, Claridad, Suavizado de piel, Reducción de ruido, Sombras, Luces, Brillo, Contraste y Saturación.";
     try {
       await navigator.clipboard.writeText(promptManual);
-      alert("📋 Prompt fotográfico copiado al portapapeles. Se abrirá Gemini en otra pestaña para que pegues tu foto y el prompt.");
+      alert("📋 Prompt fotográfico copiado al portapapeles. Se abrirá Gemini para que pegues tu foto y el prompt.");
     } catch (e) {}
     window.open("https://google.com", "_blank");
   });
